@@ -1,7 +1,7 @@
 import requests
+import os
 
-f = open("api_key.txt")
-api_key = f.read()
+api_key = os.environ['API_KEY']
 
 url = "https://api.telegram.org/bot" + api_key + "/"
 
