@@ -68,7 +68,7 @@ class Message:
         self.Chat = Chat(data['chat'])
         self.Text = get_string('text', data, '')
 
-    def has_user(self):
+    def has_user(self) -> bool:
         return self.User is not None
 
     def to_string(self):
@@ -83,7 +83,7 @@ class Update:
         self.Id = int(data['update_id'])
         self.Message = Message(data['message']) if 'message' in data else None
 
-    def has_message(self):
+    def has_message(self) -> bool:
         return self.Message is not None
 
     def to_string(self):
@@ -111,7 +111,6 @@ def get_updates(url, offset=0):
         updates.append(Update(upd))
 
     return updates
-
 
 def send_mess(chat, text):
     params = {'chat_id': chat, 'text': text}
