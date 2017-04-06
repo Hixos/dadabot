@@ -1,6 +1,9 @@
 import requests
 
-url = "https://api.telegram.org/bot306919977:AAEcH4CRYMW2VIJL7h_zPKfutcmWmwdul8A/"
+f = open("api_key.txt")
+api_key = f.read()
+
+url = "https://api.telegram.org/bot" + api_key + "/"
 
 last_update_id = 0
 
