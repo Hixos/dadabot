@@ -1,7 +1,11 @@
 import requests
 import os
 
-api_key = os.environ['API_KEY']
+if 'API_KEY' in os.environ:
+    api_key = os.environ['API_KEY']
+else:
+    f = open("api_key.txt")
+    api_key = f.read()
 
 url = "https://api.telegram.org/bot" + api_key + "/"
 
@@ -39,7 +43,7 @@ class User:
     def to_string(self):
         return 'USER: ' + str(self.Id) + ' ' + self.FirstName + ' ' + self.LastName + ' ' + self.Username
 
-    def print(self):
+    def printc(self):
         print(self.to_string() + '\n')
 
 
@@ -56,7 +60,7 @@ class Chat:
     def to_string(self):
         return 'CHAT: ' + str(self.Id) + ' ' + self.Type + ' ' + self.Title + ' ' + self.FirstName
 
-    def print(self):
+    def printc(self):
         print(self.to_string() + '\n')
 
 
@@ -74,7 +78,7 @@ class Message:
     def to_string(self):
         return 'MESSAGE: ' + str(self.Id) + ' ' + self.User + ' ' + self.Text
 
-    def print(self):
+    def printc(self):
         print(self.to_string() + '\n')
 
 
@@ -89,7 +93,7 @@ class Update:
     def to_string(self):
         return 'Update: ' + str(self.Id)
 
-    def print(self):
+    def printc(self):
         print(self.to_string() + '\n')
 
 
