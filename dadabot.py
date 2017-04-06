@@ -99,7 +99,6 @@ class Update:
 
 def get_updates(url, offset=0):
     req = url + 'getUpdates' + (('?offset=' + str(offset)) if offset != 0 else '')
-    print(req + '\n')
     response = requests.get(req)
 
     json = response.json()
