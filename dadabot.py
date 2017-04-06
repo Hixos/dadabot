@@ -1,7 +1,11 @@
 import requests
 import os
 
-api_key = os.environ['API_KEY']
+if 'API_KEY' in os.environ:
+    api_key = os.environ['API_KEY']
+else:
+    f = open('api_key.txt')
+    api_key = f.readline()
 
 url = "https://api.telegram.org/bot" + api_key + "/"
 
@@ -111,6 +115,7 @@ def get_updates(url, offset=0):
         updates.append(Update(upd))
 
     return updates
+
 
 def send_mess(chat, text):
     params = {'chat_id': chat, 'text': text}
