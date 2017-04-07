@@ -20,9 +20,13 @@ def eval_message(msg: TelegramApi.Message):
         telegram.send_mess(msg.Chat.Id, 'NO!')
 
 
-@app.route('/test/', methods=['GET'])
+@app.route('/', methods=['GET'])
 def getget():
-    s = request.args.get('test')
+    if 'test' in request.args:
+        s = request.args.get('test')
+    else:
+        s = "Ciao!"
+
     return 'Get! ' + str(s)
 
 if __name__ == "__main__":
