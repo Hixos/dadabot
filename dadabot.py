@@ -17,11 +17,10 @@ telegram = TelegramApi(api_key, app_name)
 
 @app.route('/' + api_key, methods=['POST'])
 def webhook():
-
     print('Received webhook \n\n')
     json = request.get_json()
     print(str(json) + '\n\n\n')
-    TelegramApi.process_updates_json(json.json(), eval_update)
+    TelegramApi.process_updates_json(json, eval_update)
 
 
 def eval_update(upd: TelegramApi.Update):
