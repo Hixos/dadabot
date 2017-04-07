@@ -15,7 +15,7 @@ else:
 telegram = TelegramApi(api_key, app_name)
 
 
-@app.route('/' + api_key + '/', methods=['POST'])
+@app.route('/' + api_key, methods=['POST'])
 def webhook():
     print('Received webhook \n\n')
     json = request.get_json()
