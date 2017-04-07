@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0b1e7263-d9eb-42a6-b7fa-7fcd443c5a3c" name="Default" comment="Update local &amp; remote message handling">
+    <list default="true" id="0b1e7263-d9eb-42a6-b7fa-7fcd443c5a3c" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dadabot.py" afterPath="$PROJECT_DIR$/dadabot.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/telegramapi.py" afterPath="$PROJECT_DIR$/telegramapi.py" />
@@ -19,11 +19,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="dadabot.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="dadabot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dadabot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="101">
-              <caret line="21" column="33" lean-forward="false" selection-start-line="21" selection-start-column="33" selection-end-line="21" selection-end-column="33" />
+            <state relative-caret-position="153">
+              <caret line="9" column="35" lean-forward="true" selection-start-line="9" selection-start-column="35" selection-end-line="9" selection-end-column="35" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -41,11 +41,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="telegramapi.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="telegramapi.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/telegramapi.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="407">
-              <caret line="150" column="25" lean-forward="true" selection-start-line="150" selection-start-column="25" selection-end-line="150" selection-end-column="25" />
+            <state relative-caret-position="850">
+              <caret line="102" column="36" lean-forward="true" selection-start-line="102" selection-start-column="36" selection-end-line="102" selection-end-column="36" />
               <folding>
                 <element signature="e#462#898#0" expanded="false" />
                 <element signature="e#924#1532#0" expanded="false" />
@@ -353,7 +353,14 @@
       <option name="project" value="LOCAL" />
       <updated>1491584845808</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Log messages">
+      <created>1491586428749</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1491586428749</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TodoView">
@@ -441,7 +448,8 @@
     <MESSAGE value="Web app init" />
     <MESSAGE value="Web app port &amp; ip" />
     <MESSAGE value="Update local &amp; remote message handling" />
-    <option name="LAST_COMMIT_MESSAGE" value="Update local &amp; remote message handling" />
+    <MESSAGE value="Log messages" />
+    <option name="LAST_COMMIT_MESSAGE" value="Log messages" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -900,6 +908,19 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/telegramapi.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="850">
+          <caret line="102" column="36" lean-forward="true" selection-start-line="102" selection-start-column="36" selection-end-line="102" selection-end-column="36" />
+          <folding>
+            <element signature="e#462#898#0" expanded="false" />
+            <element signature="e#924#1532#0" expanded="false" />
+            <element signature="e#1561#2132#0" expanded="false" />
+            <element signature="e#2160#2553#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/localtest.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="51">
@@ -910,23 +931,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dadabot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="101">
-          <caret line="21" column="33" lean-forward="false" selection-start-line="21" selection-start-column="33" selection-end-line="21" selection-end-column="33" />
+        <state relative-caret-position="153">
+          <caret line="9" column="35" lean-forward="true" selection-start-line="9" selection-start-column="35" selection-end-line="9" selection-end-column="35" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/telegramapi.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="407">
-          <caret line="150" column="25" lean-forward="true" selection-start-line="150" selection-start-column="25" selection-end-line="150" selection-end-column="25" />
-          <folding>
-            <element signature="e#462#898#0" expanded="false" />
-            <element signature="e#924#1532#0" expanded="false" />
-            <element signature="e#1561#2132#0" expanded="false" />
-            <element signature="e#2160#2553#0" expanded="false" />
           </folding>
         </state>
       </provider>

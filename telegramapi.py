@@ -86,8 +86,9 @@ class TelegramApi:
         def print(self):
             print(self.to_string() + '\n')
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, app_name):
         self.api_key = api_key
+        self.app_name = app_name
         self.url = "https://api.telegram.org/bot" + self.api_key + "/"
 
     def send_mess(self, chat, text):
@@ -96,7 +97,7 @@ class TelegramApi:
         return response
 
     def set_webhook(self):
-        url = 'https://dadabot1.herokuapp.com/' + self.api_key
+        url = 'https://' + self.app_name + '.herokuapp.com/' + self.api_key
         params = {'url': url}
         response = requests.post(self.url + 'setWebhook', data=params)
         print(response.raw + '\n\n')

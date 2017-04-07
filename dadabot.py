@@ -4,6 +4,7 @@ from telegramapi import TelegramApi
 from flask import Flask, request
 
 app = Flask(__name__)
+app_name = os.environ.get('APP_NAME', 'dadabot1')
 
 if 'API_KEY' in os.environ:
     api_key = os.environ['API_KEY']
@@ -11,7 +12,7 @@ else:
     f = open('api_key.txt')
     api_key = f.readline()
 
-telegram = TelegramApi(api_key)
+telegram = TelegramApi(api_key, app_name)
 
 
 @app.route('/' + api_key + '/', methods=['POST'])
@@ -32,7 +33,7 @@ def eval_update(upd: TelegramApi.Update):
     if msg.Text.lower().__contains__('sushi') and chat.Username == 'Hixos':
         telegram.send_mess(chat.Id, 'Nope')
 
-        s
+
 telegram.set_webhook()
 
 # Start the web app (only if on remote server)
