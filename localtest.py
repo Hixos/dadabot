@@ -1,3 +1,8 @@
-from dadabot import telegram, eval_update, api_key
+from dadabot import telegram, app
 
-telegram.process_updates(eval_update)
+telegram.delete_webhook()
+
+if __name__ == "__main__":
+    app.run()
+
+#telegram.process_updates(eval_update)
