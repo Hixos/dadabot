@@ -25,6 +25,9 @@ def getget():
     s = request.args.get('test')
     return 'Get! ' + str(s)
 
+if __name__ == "__main__":
+    app.run()
+
 
 #json_data=json.loads(requests.body)
 '''
