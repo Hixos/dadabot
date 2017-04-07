@@ -14,6 +14,14 @@ else:
 telegram = TelegramApi(api_key)
 
 
+@app.route('/' + api_key + '/', methods=['POST'])
+def webhook():
+    print('Received webhook \n\n')
+    json = request.get_json()
+    print(json + '\n\n\n')
+    TelegramApi.process_updates_json(json, eval_update)
+
+
 def eval_update(upd: TelegramApi.Update):
     if not upd.has_message():
         return
@@ -24,13 +32,7 @@ def eval_update(upd: TelegramApi.Update):
     if msg.Text.lower().__contains__('sushi') and chat.Username == 'Hixos':
         telegram.send_mess(chat.Id, 'Nope')
 
-
-@app.route('/' + api_key + '/', methods=['POST'])
-def webhook():
-    json = request.get_json()
-    TelegramApi.process_updates_json(json, eval_update)
-
-
+        s
 telegram.set_webhook()
 
 # Start the web app (only if on remote server)

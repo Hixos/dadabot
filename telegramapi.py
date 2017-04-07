@@ -99,6 +99,7 @@ class TelegramApi:
         url = 'https://dadabot1.herokuapp.com/' + self.api_key
         params = {'url': url}
         response = requests.post(self.url + 'setWebhook', data=params)
+        print(response.raw + '\n\n')
 
     @staticmethod
     def _parse_updates(updatejson):
@@ -141,6 +142,7 @@ class TelegramApi:
     @staticmethod
     def process_updates_json(json_data, upd_eval):
         updates = TelegramApi._parse_updates(json_data)  # type: list[TelegramApi.Update]
+        print('Number of updates: ' + str(len(updates)))
         TelegramApi.process_updates_list(updates, upd_eval)
 
     @staticmethod
