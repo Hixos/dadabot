@@ -1,4 +1,5 @@
 import requests
+import logging
 
 
 class TelegramApi:
@@ -73,13 +74,18 @@ class TelegramApi:
     def send_mess(self, chat, text):
         params = {'chat_id': chat, 'text': text}
         response = requests.post(self.url + 'sendMessage', data=params)
+        logging.info('Send_mess response: %s', response.raw)
         return response
 
     def set_webhook(self):
         url = 'https://' + self.app_name + '.herokuapp.com/' + self.api_key
+
+        logging.info('Setting webhook: ' + url)
+
         params = {'url': url}
         response = requests.post(self.url + 'setWebhook', data=params)
-        print(str(response.raw) + '\n\n')
+
+        logging.info("Webhook reponse: %s", str(response.raw))
 
     def delete_webhook(self):
         url = self.url + 'deleteWebhook'
@@ -124,10 +130,9 @@ class TelegramApi:
             cond = len(updates) > 0
 
     @staticmethod
-    def process_updates_json(json_data, upd_eval):
-        updates = TelegramApi._parse_updates(json_data)  # type: list[TelegramApi.Update]
-        print('Number of updates: ' + str(len(updates)))
-        TelegramApi.process_updates_list(updates, upd_eval)
+    def process_update_json(json_data, upd_eval):
+        update = TelegramApi.Update(json_data)
+        upd_eval(update)
 
     @staticmethod
     def process_updates_list(update_list, upd_eval):

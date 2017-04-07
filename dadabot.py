@@ -1,4 +1,5 @@
 import os
+import logging
 
 from telegramapi import TelegramApi
 from flask import Flask, request
@@ -17,14 +18,24 @@ telegram = TelegramApi(api_key, app_name)
 
 @app.route('/' + api_key, methods=['POST'])
 def webhook():
-    print('Received webhook \n\n')
-    json = request.get_json()
-    print(str(json) + '\n\n\n')
-    TelegramApi.process_updates_json(json, eval_update)
+    logging.info('Received webhook')
+    if request.is_json:
+        j = request.get_json(silent=True)
+
+        if j is None:
+            logging.error('request.get_json() returned None')
+            return 'Error'
+
+        TelegramApi.process_update_json(j, eval_update)
+    else:
+        logging.warning('Received non-json request: ' + request.data)
+
+    return 'OK'
 
 
 def eval_update(upd: TelegramApi.Update):
     if not upd.has_message():
+        logging.warning('Eval: Update with no message')
         return
 
     msg = upd.Message
