@@ -1,5 +1,10 @@
 import requests
+import json
 import os
+from flask import Flask, request
+
+app = Flask(__name__)
+
 
 if 'API_KEY' in os.environ:
     api_key = os.environ['API_KEY']
@@ -97,11 +102,13 @@ class Update:
         print(self.to_string() + '\n')
 
 
-def get_updates(url, offset=0):
+def get_updates_json(url, offset=0):
     req = url + 'getUpdates' + (('?offset=' + str(offset)) if offset != 0 else '')
     response = requests.get(req)
+    return response.json()
 
-    json = response.json()
+
+def get_updates(json):
     ok = bool(json['ok'])
     updates = []
 
@@ -127,9 +134,16 @@ def eval_message(msg: Message):
         send_mess(msg.Chat.Id, 'NO!')
 
 
+@app.route('/', methods=['GET'])
+def getget():
+    s = request.args.get('test');
+    print('Get! ' + str(s))
+
 maxid = 0
 
-updates = get_updates(url, 432878842)  # type: list[Update]
+#json_data=json.loads(requests.body)
+'''
+updates = get_updates(json_data)  # type: list[Update]
 
 for upd in updates:
     if upd.Id > maxid:
@@ -145,5 +159,5 @@ for upd in updates:
 print(maxid)
 
 
-
+'''
 
