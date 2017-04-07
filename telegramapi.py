@@ -81,6 +81,11 @@ class TelegramApi:
         response = requests.post(self.url + 'setWebhook', data=params)
         print(str(response.raw) + '\n\n')
 
+    def delete_webhook(self):
+        url = self.url + 'deleteWebhook'
+        result = requests.get(url).json()
+        return result.get('result', False)
+
     @staticmethod
     def _parse_updates(updatejson):
         updates = []

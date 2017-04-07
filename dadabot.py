@@ -4,7 +4,7 @@ from telegramapi import TelegramApi
 from flask import Flask, request
 
 app = Flask(__name__)
-app_name = os.environ.get('APP_NAME', 'dadabot1')
+app_name = os.environ.get('APP_NAME', 'dadabot-test')
 
 if 'API_KEY' in os.environ:
     api_key = os.environ['API_KEY']
