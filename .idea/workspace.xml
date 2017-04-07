@@ -21,8 +21,8 @@
       <file leaf-file-name="dadabot.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dadabot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
-              <caret line="26" column="9" lean-forward="true" selection-start-line="26" selection-start-column="9" selection-end-line="26" selection-end-column="9" />
+            <state relative-caret-position="255">
+              <caret line="33" column="38" lean-forward="true" selection-start-line="33" selection-start-column="38" selection-end-line="33" selection-end-column="38" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -324,7 +324,14 @@
       <option name="project" value="LOCAL" />
       <updated>1491578857001</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Web app test 1">
+      <created>1491579225986</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1491579225986</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TodoView">
@@ -410,7 +417,8 @@
     <MESSAGE value="Test get request" />
     <MESSAGE value="Updated class logic" />
     <MESSAGE value="Web app init" />
-    <option name="LAST_COMMIT_MESSAGE" value="Web app init" />
+    <MESSAGE value="Web app test 1" />
+    <option name="LAST_COMMIT_MESSAGE" value="Web app test 1" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -655,8 +663,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dadabot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="26" column="9" lean-forward="true" selection-start-line="26" selection-start-column="9" selection-end-line="26" selection-end-column="9" />
+        <state relative-caret-position="255">
+          <caret line="33" column="38" lean-forward="true" selection-start-line="33" selection-start-column="38" selection-end-line="33" selection-end-column="38" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
