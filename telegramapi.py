@@ -1,37 +1,16 @@
 import requests
 
 
-def get_string(field, data, default=""):
-    if field in data:
-        return data[field]
-    else:
-        return default
-
-
-def get_int(field, data, default=0):
-    if field in data:
-        return int(data[field])
-    else:
-        return default
-
-
-def get_bool(field, data, default=False):
-    if field in data:
-        return bool(data[field])
-    else:
-        return default
-
-
 class TelegramApi:
 
     _offset = 0
 
     class User:
         def __init__(self, data):
-            self.Id = int(data['id']);
-            self.FirstName = data['first_name']
-            self.LastName = get_string('last_name', data)
-            self.Username = get_string('username', data)
+            self.Id = int(data.get('id'))
+            self.FirstName = data.get('first_name')
+            self.LastName = data.get('last_name')
+            self.Username = data.get('username')
 
         def to_string(self):
             return 'USER: ' + str(self.Id) + ' ' + self.FirstName + ' ' + self.LastName + ' ' + self.Username
@@ -41,13 +20,13 @@ class TelegramApi:
 
     class Chat:
         def __init__(self, data):
-            self.Id = int(data['id'])
-            self.Type = data['type']
-            self.Title = get_string('title', data)
-            self.FirstName = get_string('first_name', data)
-            self.LastName = get_string('last_name', data)
-            self.Username = get_string('username', data)
-            self.Every1Admin = get_bool('all_members_are_administrators', data)
+            self.Id = int(data.get('id'))
+            self.Type = data.get('type', '')
+            self.Title = data.get('title', '')
+            self.FirstName = data.get('first_name', '')
+            self.LastName = data.get('last_name', '')
+            self.Username = data.get('username', '')
+            self.Every1Admin = bool(data.get('all_members_are_administrators', False))
 
         def to_string(self):
             return 'CHAT: ' + str(self.Id) + ' ' + self.Type + ' ' + self.Title + ' ' + self.FirstName
@@ -57,25 +36,25 @@ class TelegramApi:
 
     class Message:
         def __init__(self, data):
-            self.Id = int(data['message_id'])
-            self.User = TelegramApi.User(data['from']) if 'from' in data else None
-            self.Date = get_int('date', data, -1)
-            self.Chat = TelegramApi.Chat(data['chat'])
-            self.Text = get_string('text', data, '')
+            self.Id = int(data.get('message_id'))
+            self.User = TelegramApi.User(data.get('from')) if 'from' in data else None
+            self.Date = data.get('date', -1)
+            self.Chat = TelegramApi.Chat(data.get('chat'))
+            self.Text = data.get('text', '')
 
         def has_user(self) -> bool:
             return self.User is not None
 
         def to_string(self):
-            return 'MESSAGE: ' + str(self.Id) + ' ' + self.User + ' ' + self.Text
+            return 'MESSAGE: ' + str(self.Id) + ' ' + self.User.FirstName + ' ' + self.Text
 
         def print(self):
             print(self.to_string() + '\n')
 
     class Update:
         def __init__(self, data):
-            self.Id = int(data['update_id'])
-            self.Message = TelegramApi.Message(data['message']) if 'message' in data else None
+            self.Id = int(data.get('update_id'))
+            self.Message = TelegramApi.Message(data.get('message')) if 'message' in data else None
 
         def has_message(self) -> bool:
             return self.Message is not None
@@ -106,26 +85,25 @@ class TelegramApi:
     def _parse_updates(updatejson):
         updates = []
 
-        if 'ok' not in updatejson:
-            return updates
-
-        ok = bool(updatejson['ok'])
-
-        if not ok:
-            return updates
-
-        updates_json = updatejson['result']
-
-        for upd in updates_json:
+        for upd in updatejson:
             updates.append(TelegramApi.Update(upd))
 
         return updates
 
     def _get_updates(self):
         req = self.url + 'getUpdates' + (('?offset=' + str(self._offset)) if self._offset != 0 else '')
-        response = requests.get(req)
+        response = requests.get(req).json()
 
-        updates = self._parse_updates(response.json()) # type: list[TelegramApi.Update]
+        ok = bool(response.get('ok', True))
+
+        updates = []
+
+        if not ok:
+            return updates
+
+        updates_json = response.get('result')
+
+        updates = self._parse_updates(updates_json)  # type: list[TelegramApi.Update]
 
         for upd in updates:
             if upd.Id >= self._offset:
