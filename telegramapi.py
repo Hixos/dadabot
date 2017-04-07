@@ -71,7 +71,7 @@ class TelegramApi:
         self.app_name = app_name
         self.url = "https://api.telegram.org/bot" + self.api_key + "/"
 
-    def send_mess(self, chat, text):
+    def send_message(self, chat, text):
         params = {'chat_id': chat, 'text': text}
         response = requests.post(self.url + 'sendMessage', data=params)
         logging.info('Send_mess response: %s', response.raw)

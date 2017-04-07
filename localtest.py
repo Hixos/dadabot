@@ -1,4 +1,4 @@
-from dadabot import telegram, eval_update, app
+from dadabot import telegram, app
 
 telegram.delete_webhook()
 
