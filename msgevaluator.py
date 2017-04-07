@@ -5,7 +5,7 @@ from telegramapi import TelegramApi
 
 answers_negative = ['NO!', 'NON ROMPERE IL CAZZO!', 'COL CAZZO!', 'HAI ROTTO', 'NOPE']
 
-no_trigger_words = ['sushi', 'evangelion', 'sashimi']
+no_trigger_words = ['sushi', 'evangelion']
 
 
 def contains(msg_text: str, words):
