@@ -19,7 +19,7 @@ telegram = TelegramApi(api_key, app_name)
 def webhook():
     print('Received webhook \n\n')
     json = request.get_json()
-    print(json + '\n\n\n')
+    print(str(json) + '\n\n\n')
     TelegramApi.process_updates_json(json, eval_update)
 
 
@@ -34,10 +34,10 @@ def eval_update(upd: TelegramApi.Update):
         telegram.send_mess(chat.Id, 'Nope')
 
 
-telegram.set_webhook()
-
 # Start the web app (only if on remote server)
 if __name__ == "__main__" and 'PORT' in os.environ:
+    telegram.set_webhook()
+
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 

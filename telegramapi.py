@@ -100,7 +100,7 @@ class TelegramApi:
         url = 'https://' + self.app_name + '.herokuapp.com/' + self.api_key
         params = {'url': url}
         response = requests.post(self.url + 'setWebhook', data=params)
-        print(response.raw + '\n\n')
+        print(str(response.raw) + '\n\n')
 
     @staticmethod
     def _parse_updates(updatejson):
