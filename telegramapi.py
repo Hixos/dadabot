@@ -24,7 +24,7 @@ def get_bool(field, data, default=False):
 
 class TelegramApi:
 
-    Updates = []
+    _offset = 0
 
     class User:
         def __init__(self, data):
@@ -95,26 +95,58 @@ class TelegramApi:
         response = requests.post(self.url + 'sendMessage', data=params)
         return response
 
-    def _parse_updates(self, updatejson):
+    def set_webhook(self):
+        url = 'https://dadabot1.herokuapp.com/' + self.api_key
+        params = {'url': url}
+        response = requests.post(self.url + 'setWebhook', data=params)
+
+    @staticmethod
+    def _parse_updates(updatejson):
+        updates = []
+
         if 'ok' not in updatejson:
-            return False
+            return updates
 
         ok = bool(updatejson['ok'])
 
         if not ok:
-            return False
+            return updates
 
         updates_json = updatejson['result']
 
         for upd in updates_json:
-            self.Updates.append(TelegramApi.Update(upd))
+            updates.append(TelegramApi.Update(upd))
 
-        return True
+        return updates
 
-    def get_updates(self, offset=0):
-        req = self.url + 'getUpdates' + (('?offset=' + str(offset)) if offset != 0 else '')
+    def _get_updates(self):
+        req = self.url + 'getUpdates' + (('?offset=' + str(self._offset)) if self._offset != 0 else '')
         response = requests.get(req)
-        return self._parse_updates(response.json())
 
-    def add_updates(self, json_data):
-        return self._parse_updates(json_data)
+        updates = self._parse_updates(response.json()) # type: list[TelegramApi.Update]
+
+        for upd in updates:
+            if upd.Id >= self._offset:
+                self._offset = upd.Id + 1
+
+        return updates
+
+    def process_updates(self, upd_eval):
+        cond = True
+        while cond:
+            updates = self._get_updates()
+            TelegramApi.process_updates_list(updates, upd_eval)
+            cond = len(updates) > 0
+
+    @staticmethod
+    def process_updates_json(json_data, upd_eval):
+        updates = TelegramApi._parse_updates(json_data)  # type: list[TelegramApi.Update]
+        TelegramApi.process_updates_list(updates, upd_eval)
+
+    @staticmethod
+    def process_updates_list(update_list, upd_eval):
+        for upd in update_list:
+            upd_eval(upd)
+
+
+

@@ -1,4 +1,3 @@
-import json
 import os
 
 from telegramapi import TelegramApi
@@ -15,41 +14,27 @@ else:
 telegram = TelegramApi(api_key)
 
 
-def eval_message(msg: TelegramApi.Message):
-    if msg.Text.lower().__contains__('sushi'):
-        telegram.send_mess(msg.Chat.Id, 'NO!')
+def eval_update(upd: TelegramApi.Update):
+    if not upd.has_message():
+        return
+
+    msg = upd.Message
+    chat = msg.Chat
+
+    if msg.Text.lower().__contains__('sushi') and chat.Username == 'Hixos':
+        telegram.send_mess(chat.Id, 'Nope')
 
 
-@app.route('/', methods=['GET'])
-def getget():
-    if 'test' in request.args:
-        s = request.args.get('test')
-    else:
-        s = "Ciao!"
+@app.route('/' + api_key + '/', methods=['POST'])
+def webhook():
+    json = request.get_json()
+    TelegramApi.process_updates_json(json, eval_update)
 
-    return 'Get! ' + str(s)
 
-if __name__ == "__main__":
+telegram.set_webhook()
+
+# Start the web app (only if on remote server)
+if __name__ == "__main__" and 'PORT' in os.environ:
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 
-
-#json_data=json.loads(requests.body)
-'''
-updates = get_updates(json_data)  # type: list[Update]
-
-for upd in updates:
-    if upd.Id > maxid:
-        maxid = upd.Id
-
-    if upd.has_message():
-        msg = upd.Message
-        chat = msg.Chat
-        if chat.Username == 'Hixos':
-            eval_message(msg)
-
-
-print(maxid)
-
-
-'''
