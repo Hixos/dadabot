@@ -38,7 +38,7 @@ class TelegramApi:
     class Message:
         def __init__(self, data):
             self.Id = int(data.get('message_id'))
-            self.User = TelegramApi.User(data.get('from')) if 'from' in data else None
+            self.Sender = TelegramApi.User(data.get('from')) if 'from' in data else None
             self.Date = data.get('date', -1)
             self.Chat = TelegramApi.Chat(data.get('chat'))
             self.Text = data.get('text', '')
@@ -138,6 +138,3 @@ class TelegramApi:
     def process_updates_list(update_list, upd_eval):
         for upd in update_list:
             upd_eval(upd)
-
-
-
