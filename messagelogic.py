@@ -21,7 +21,7 @@ def contains(msg_text: str, words):
 def exec_command(cmd: ParseResult):
     if cmd.Command == 'addanswer':
         data = cmd.Data  # type:AnswerData
-        logger.info("[%s] Adding matches: %s", cmd.Command, str(data.Words))
+        logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
         answers.append(SingleWordMatchAnswer(data.Words, data.Answers))
 
 
@@ -36,7 +36,7 @@ def load_commands():
         cmdstr = file.readline()
         if len(cmdstr) > 1:
             cmdstr = cmdstr[0:-1]
-            logger.info("Loading command: " + cmdstr)
+            logger.debug("Loading command: " + cmdstr)
             cmd = parse_command(cmdstr)
 
             if cmd.Found and cmd.Op.Result:
@@ -52,7 +52,6 @@ load_commands()
 
 
 def save_command(cmd: str):
-    logger.info("Saving command: %s", cmd)
     file = open(commands_file, 'a+')
     file.write(cmd + '\n')
     file.close()
