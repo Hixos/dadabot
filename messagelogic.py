@@ -65,17 +65,18 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     msg = update.Message
 
     logger.info("Received message: " + msg.Text)
-    
-    cmd = parse_command(msg.Text)
+    text = msg.Text.replace('\n', ' ').replace('\r', '')  # type: str
+    cmd = parse_command(text)
 
     if cmd.Found:
         if cmd.Op.Result:
-            logger.info('Adding received command:' + msg.Text)
-            save_command(msg.Text)
+            logger.info('Adding received command:' + text)
+
+            save_command(text)
             exec_command(cmd)
             telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
         else:
-            logger.info('Command contains errors:' + msg.Text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
+            logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
             telegram.send_message(msg.Chat.Id, "Errore: " + cmd.Op.Text + ". Posizione: " + str(cmd.Op.Index))
 
         return
