@@ -40,7 +40,6 @@ def evaluate_update(update: TelegramApi.Update):
 
 # Start the web app (only if on remote server)
 if __name__ == "__main__":
-    logger.basicConfig(filename='dadabot.log', level=logger.INFO)
 
     if 'PORT' in os.environ:
         telegram.set_webhook()
