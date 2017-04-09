@@ -35,22 +35,23 @@ def find_words(msg: str, words, return_on_match=True, ignore_case=True, whole_wo
 
 
 class SingleWordMatchAnswer:
-    Matchwords = []  # Words which trigger this answer
-
-    Answers = []  # type: list[str]
-
     Options = {}
 
     def __init__(self, words, answers):
-        self.Matchwords = words
-        self.Answers = answers
+        self.Matchwords = words # type: list[str]
+        self.Answers = answers # type: list[str]
 
     def matches(self, msg: str):
         return len(find_words(msg, self.Matchwords, **self.Options)) > 0
 
     def answer(self, msg: TelegramApi.Message, telegram: TelegramApi):
-        answ = random.choice(self.Answers)  # type: str
-        answ = answ.format(Msg=msg)
+        answ = random.choice(self.Answers)  # type:
+
+        try:
+            answ = answ.format(Msg=msg)
+        except (KeyError, AttributeError):
+            pass
+
         telegram.send_message(msg.Chat.Id, answ)
 
 
