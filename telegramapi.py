@@ -1,5 +1,5 @@
 import requests
-import logging
+from logs import logger
 
 
 class TelegramApi:
@@ -38,7 +38,7 @@ class TelegramApi:
     class Message:
         def __init__(self, data):
             self.Id = int(data.get('message_id'))
-            self.User = TelegramApi.User(data.get('from')) if 'from' in data else None
+            self.Sender = TelegramApi.User(data.get('from')) if 'from' in data else None
             self.Date = data.get('date', -1)
             self.Chat = TelegramApi.Chat(data.get('chat'))
             self.Text = data.get('text', '')
@@ -74,18 +74,18 @@ class TelegramApi:
     def send_message(self, chat, text):
         params = {'chat_id': chat, 'text': text}
         response = requests.post(self.url + 'sendMessage', data=params)
-        logging.info('Send_mess response: %s', response.raw)
+        logger.info('Send_mess response: %s', response.raw)
         return response
 
     def set_webhook(self):
         url = 'https://' + self.app_name + '.herokuapp.com/' + self.api_key
 
-        logging.info('Setting webhook: ' + url)
+        logger.info('Setting webhook: ' + url)
 
         params = {'url': url}
         response = requests.post(self.url + 'setWebhook', data=params)
 
-        logging.info("Webhook reponse: %s", str(response.raw))
+        logger.info("Webhook reponse: %s", str(response.raw))
 
     def delete_webhook(self):
         url = self.url + 'deleteWebhook'
@@ -103,6 +103,7 @@ class TelegramApi:
 
     def _get_updates(self):
         req = self.url + 'getUpdates' + (('?offset=' + str(self._offset)) if self._offset != 0 else '')
+
         response = requests.get(req).json()
 
         ok = bool(response.get('ok', True))
@@ -110,6 +111,7 @@ class TelegramApi:
         updates = []
 
         if not ok:
+            logger.error("Cannot get updates: %s", response.get('description', 'No reason'))
             return updates
 
         updates_json = response.get('result')
@@ -126,6 +128,7 @@ class TelegramApi:
         cond = True
         while cond:
             updates = self._get_updates()
+            logger.info("Updates: %d", len(updates))
             TelegramApi.process_updates_list(updates, upd_eval)
             cond = len(updates) > 0
 
@@ -138,6 +141,3 @@ class TelegramApi:
     def process_updates_list(update_list, upd_eval):
         for upd in update_list:
             upd_eval(upd)
-
-
-
