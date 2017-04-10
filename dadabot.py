@@ -1,5 +1,6 @@
 import os
 from logs import logger
+from shared_data import api_key
 
 from telegramapi import TelegramApi
 from flask import Flask, request
@@ -7,12 +8,6 @@ from messagelogic import evaluate
 
 app = Flask(__name__)
 app_name = os.environ.get('APP_NAME', 'dadabot-test')
-
-if 'API_KEY' in os.environ:
-    api_key = os.environ['API_KEY']
-else:
-    f = open('api_key.txt')
-    api_key = f.readline()
 
 telegram = TelegramApi(api_key, app_name)
 
