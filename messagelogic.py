@@ -57,8 +57,10 @@ def load_commands():
 
 #load_commands()
 
+
 def load_commands_remote():
-    commands = requests.post(cmds_get_url).text
+    params = {'skey': api_key}
+    commands = requests.post(cmds_get_url, json=params).text
     file = io.StringIO(commands)
     while True:
         cmdstr = file.readline()
