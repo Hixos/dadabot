@@ -45,6 +45,46 @@ def read_text(s: str, i: int):
     return StrOp(i, False, 'EOS')
 
 
+def parse_removematching(cmd: str):  # TODO: Finish implementation
+    match_words = []
+
+    i = 0
+
+    can_proceed = True
+    clean_end = False
+
+    while i < len(cmd):
+        r = skip_whitespaces(cmd, i)
+        if r.Result:
+            i = r.Index
+        else:
+            return {dic_result, r}
+
+        if cmd[i] == text_delimiter:
+            if not can_proceed:
+                return {dic_result: StrOp(i, False, "Virgole mancanti")}
+
+            r = read_text(cmd, i+1)
+            if r.Result:
+                i = r.Index
+                match_words.append(r.Text)
+                clean_end = True
+            else:
+                return {dic_result, r}
+
+        elif len(match_words) == 0:
+            return {dic_result: StrOp(i, False, 'Non hai specificato nessuna parola!')}
+
+        elif cmd[i] == ',':
+            i += 1
+            can_proceed = True
+            continue
+        else:
+            return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+
+        can_proceed = False
+
+
 def parse_addanswer(cmd: str):
     section = 0
     clean_end = False
