@@ -1,7 +1,8 @@
 import requests
+api_key = 'fake api key'
 
-url = 'http://dadabot.altervista.org/getcommands.php'
-#params = {'skey': 'abcd123', 'cmd': 'addanwer "ciao","bau":"cacca","prugna"'}
-response = requests.post(url)#, json=params)
+url = 'http://dadabot.altervista.org/addcommand.php'
+params = {'skey': api_key, 'cmd': 'addanwer "ciao","bau":"cacca","prugna"'}
+response = requests.post(url, json=params)
 
 print(response.text)

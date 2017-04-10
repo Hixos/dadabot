@@ -103,7 +103,11 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     cmd = parse_command(text)
 
     if cmd.Found:
-        if cmd.Op.Result:
+        if text.startswith('!') and cmd.Op.Result:  # Special commands
+            logger.info('Received special command:' + text)
+            telegram.send_message(msg.Chat.Id, cmd.Data)
+
+        elif cmd.Op.Result:
             logger.info('Adding received command:' + text)
 
             error = ''

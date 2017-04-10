@@ -144,9 +144,22 @@ def parse_addanswer(cmd: str):
     else:
         return {dic_result: StrOp(i, False, 'Errore di sintassi')}
 
+def display_args(cmd:str):
+    str1 = '1: Msg\n--Id\n--Sender (Vedi 2)\n--Date\n--Chat (Vedi 3)\n--Text\n\n'
+    str2 = '2: Sender\n--Id\n--FirstName\n--LastName\n--Username\n\n'
+    str3 = '3: Chat\n--Id\n--Type\n--Title\n--FirstName\n--LastName\n--Username\n\n'
+    str4 = 'Esempio: "{Msg.Sender.Firstname} è il vero nome di {Msg.Sender.Username}'
+
+    msg = str1 + str2 + str3 + str4
+
+    if len(cmd) == 0:
+        return {dic_result: StrOp(0, True, ''), 'Data': msg}
+    else:
+        return {dic_result: StrOp(0, False, '')}
 
 commands = [
-    ('addanswer', parse_addanswer)
+    ('addanswer', parse_addanswer),
+    ('!msgargs', display_args)
 ]
 
 
@@ -154,7 +167,7 @@ def parse_command(cmdstr: str):
     for cmd in commands:
         cmdlen = len(cmd[0])
 
-        if cmdstr.startswith(cmd[0]) and len(cmdstr) > cmdlen:
+        if cmdstr.lower().startswith(cmd[0]) and len(cmdstr) >= cmdlen:
             r = cmd[1](cmdstr[cmdlen:])
             return ParseResult(True, cmd[0], r['Op'], r.get('Data', None))
 
