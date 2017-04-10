@@ -1,11 +1,18 @@
 from logs import logger
 import os.path
+import requests
+import io
 
 from commandparser import parse_command, ParseResult, AnswerData
 from answers import SingleWordMatchAnswer
 from telegramapi import TelegramApi
+from shared_data import api_key
 
 commands_file = 'commands.txt'
+
+cmd_url = 'http://dadabot.altervista.org/'
+cmds_get_url = cmd_url + 'getcommands.php'
+cmds_add_url = cmd_url + 'addcommand.php'
 
 answers = []  # type: list[SingleWordMatchAnswer]
 
@@ -48,13 +55,40 @@ def load_commands():
 
     file.close()
 
-load_commands()
+#load_commands()
+
+
+def load_commands_remote():
+    params = {'skey': api_key}
+    commands = requests.post(cmds_get_url, json=params).text
+    file = io.StringIO(commands)
+    while True:
+        cmdstr = file.readline()
+        if len(cmdstr) > 1:
+            cmdstr = cmdstr[0:-1]
+            logger.debug("Loading command: " + cmdstr)
+            cmd = parse_command(cmdstr)
+
+            if cmd.Found and cmd.Op.Result:
+                exec_command(cmd)
+            else:
+                logger.error("Cannot execute loaded command: " + str(cmd))
+        else:
+            break
+
+load_commands_remote()
 
 
 def save_command(cmd: str):
     file = open(commands_file, 'a+')
     file.write(cmd + '\n')
     file.close()
+
+
+def save_command_remote(cmd: str):
+    params = {'skey': api_key, 'cmd': cmd}
+    response = requests.post(cmds_add_url, json=params)
+    return response.text.startswith('ok')
 
 
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
@@ -69,12 +103,20 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     cmd = parse_command(text)
 
     if cmd.Found:
-        if cmd.Op.Result:
+        if text.startswith('!') and cmd.Op.Result:  # Special commands
+            logger.info('Received special command:' + text)
+            telegram.send_message(msg.Chat.Id, cmd.Data)
+
+        elif cmd.Op.Result:
             logger.info('Adding received command:' + text)
 
-            save_command(text)
+            error = ''
+            if not save_command_remote(text):
+                logger.info('Error adding cmd to remote server:')
+                error = 'Comando non salvato, verrà perso al prossimo riavvio.'
+
             exec_command(cmd)
-            telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
+            telegram.send_message(msg.Chat.Id, "Comando aggiunto! " + error)
         else:
             logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
             telegram.send_message(msg.Chat.Id, "Errore: " + cmd.Op.Text + ". Posizione: " + str(cmd.Op.Index))
