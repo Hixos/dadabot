@@ -160,7 +160,7 @@ def display_args(cmd:str):
 
 
 def display_help(cmd: str):
-    str1 = '!addanswer - Guida aggiunta risposte automatiche\n\n'
+    str1 = '!match - Guida aggiunta risposte automatiche\n\n'
     str2 = '!msgargs - Guida stringhe speciali nella risposta'
 
     msg = str1 + str2
