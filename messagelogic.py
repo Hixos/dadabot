@@ -23,7 +23,7 @@ def exec_command(cmd: ParseResult):
         data = cmd.Data  # type:ResponseData
         logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
 
-        if cmdstr == 'matchword':
+        if cmdstr == 'matchwords':
             mode = WordMatchMode.WHOLE
         elif cmdstr == 'matchany':
             mode = WordMatchMode.ANY
