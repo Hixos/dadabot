@@ -3,8 +3,8 @@ import os.path
 import requests
 import io
 
-from commandparser import parse_command, ParseResult, AnswerData
-from answers import SingleWordMatchAnswer
+from commandparser import parse_command, ParseResult, ResponseData
+from responses import WordMatchResponse, WordMatchMode
 from telegramapi import TelegramApi
 from shared_data import api_key
 
@@ -14,22 +14,23 @@ cmd_url = 'http://dadabot.altervista.org/'
 cmds_get_url = cmd_url + 'getcommands.php'
 cmds_add_url = cmd_url + 'addcommand.php'
 
-answers = []  # type: list[SingleWordMatchAnswer]
-
-
-def contains(msg_text: str, words):
-    for w in words:
-        if msg_text.lower().find(w) >= 0:
-            return True
-
-    return False
+responses = []  # type: list[WordMatchResponse]
 
 
 def exec_command(cmd: ParseResult):
-    if cmd.Command == 'addanswer':
-        data = cmd.Data  # type:AnswerData
+    cmdstr = cmd.Command  # type: str
+    if cmdstr.startswith('match'):
+        data = cmd.Data  # type:ResponseData
         logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
-        answers.append(SingleWordMatchAnswer(data.Words, data.Answers))
+
+        if cmdstr == 'matchword':
+            mode = WordMatchMode.WHOLE
+        elif cmdstr == 'matchany':
+            mode = WordMatchMode.ANY
+        else:
+            mode = WordMatchMode.EXACT
+
+        responses.append(WordMatchResponse(data.Words, data.Responses, mode))
 
 
 def load_commands():
@@ -72,7 +73,7 @@ def load_commands_remote():
             if cmd.Found and cmd.Op.Result:
                 exec_command(cmd)
             else:
-                logger.error("Cannot execute loaded command: " + str(cmd))
+                logger.error("Cannot execute loaded command: " + cmdstr)
         else:
             break
 
@@ -113,7 +114,7 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
             error = ''
             if not save_command_remote(text):
                 logger.info('Error adding cmd to remote server:')
-                error = 'Comando non salvato, verrà perso al prossimo riavvio.'
+                error = 'Comando non salvato, verrà dimenticato in breve tempo. RIP.'
 
             exec_command(cmd)
             telegram.send_message(msg.Chat.Id, "Comando aggiunto! " + error)
@@ -123,9 +124,9 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
 
         return
 
-    logger.debug("Iterating answers (%d):", len(answers))
-    for answer in answers:
+    logger.debug("Iterating answers (%d):", len(responses))
+    for answer in responses:
         logger.debug('Answer: %s', answer.Matchwords[0])
         if answer.matches(msg.Text):
             logger.debug('Matched: %s', answer.Matchwords[0])
-            answer.answer(msg, telegram)
+            answer.reply(msg, telegram)

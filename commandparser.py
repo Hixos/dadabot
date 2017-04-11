@@ -5,7 +5,7 @@ StrOp = collections.namedtuple('StrOp', ['Index', 'Result', 'Text'])
 
 ParseResult = collections.namedtuple('ParseResult', ['Found', 'Command', 'Op', 'Data'])
 
-AnswerData = collections.namedtuple('AnswerData', ['Words', 'Answers'])
+ResponseData = collections.namedtuple('ResponseData', ['Words', 'Responses'])
 
 text_delimiter = '"'
 
@@ -85,13 +85,13 @@ def parse_removematching(cmd: str):  # TODO: Finish implementation
         can_proceed = False
 
 
-def parse_addanswer(cmd: str):
+def parse_match(cmd: str):
     section = 0
     clean_end = False
     can_proceed = True
 
     match_words = []
-    answers = []
+    responses = []
 
     i = 0
 
@@ -114,7 +114,7 @@ def parse_addanswer(cmd: str):
                 if section == 0:
                     match_words.append(r.Text)
                 elif section == 1:
-                    answers.append(r.Text)
+                    responses.append(r.Text)
                     clean_end = True
             else:
                 return {dic_result: r}
@@ -138,8 +138,8 @@ def parse_addanswer(cmd: str):
         can_proceed = False
 
     if clean_end:
-        return {dic_result: StrOp(i, True, ''), 'Data': AnswerData(match_words, answers)}
-    elif len(answers) == 0:
+        return {dic_result: StrOp(i, True, ''), 'Data': ResponseData(match_words, responses)}
+    elif len(responses) == 0:
         return {dic_result: StrOp(i, False, 'Non hai scritto nessuna risposta!')}
     else:
         return {dic_result: StrOp(i, False, 'Errore di sintassi')}
@@ -171,10 +171,9 @@ def display_help(cmd: str):
         return {dic_result: StrOp(0, False, '')}
 
 
-def display_addanwer(cmd: str):
-    str1 = 'addanswer "parola1", "parola2", "parolaN": "risposta1", "risposta2", "rispostaN"'
-
-    msg = str1
+def display_match(cmd: str):
+    msg = 'Esempio: \nmatchwords "parola1", "parola2", "parolaN": "risposta1", "risposta2", "rispostaN"\n' \
+           'Comandi disponibili: matchwords, matchany, matchexact'
 
     if len(cmd) == 0:
         return {dic_result: StrOp(0, True, ''), 'Data': msg}
@@ -182,11 +181,13 @@ def display_addanwer(cmd: str):
         return {dic_result: StrOp(0, False, '')}
 
 commands = [
-    ('addanswer', parse_addanswer),
+    ('matchwords', parse_match),
+    ('matchany', parse_match),
+    ('matchexact', parse_match),
 
     ('!msgargs', display_args),
     ('!help', display_help),
-    ('!addanswer', display_addanwer)
+    ('!match', display_match)
 ]
 
 
