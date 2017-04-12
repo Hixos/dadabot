@@ -124,7 +124,7 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
                 logger.info('Error adding cmd to remote server:')
                 error = 'Comando non salvato, verrà dimenticato in breve tempo. RIP.'
 
-            exec_command(cmd, msg, telegram)
+            exec_command(cmd)
             telegram.send_message(msg.Chat.Id, "Comando aggiunto! " + error)
         else:
             logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
