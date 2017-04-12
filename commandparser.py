@@ -180,6 +180,13 @@ def display_match(cmd: str):
     else:
         return {dic_result: StrOp(0, False, '')}
 
+
+def reload(cmd: str):
+    if len(cmd) == 0:
+        return {dic_result: StrOp(0, True, ''), 'Data': ''}
+    else:
+        return {dic_result: StrOp(0, False, '')}
+
 commands = [
     ('matchwords', parse_match),
     ('matchany', parse_match),
@@ -187,7 +194,8 @@ commands = [
 
     ('!msgargs', display_args),
     ('!help', display_help),
-    ('!match', display_match)
+    ('!match', display_match),
+    ('!reload', reload)
 ]
 
 

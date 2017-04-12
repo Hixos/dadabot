@@ -17,22 +17,6 @@ cmds_add_url = cmd_url + 'addcommand.php'
 responses = []  # type: list[WordMatchResponse]
 
 
-def exec_command(cmd: ParseResult):
-    cmdstr = cmd.Command  # type: str
-    if cmdstr.startswith('match'):
-        data = cmd.Data  # type:ResponseData
-        logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
-
-        if cmdstr == 'matchwords':
-            mode = WordMatchMode.WHOLE
-        elif cmdstr == 'matchany':
-            mode = WordMatchMode.ANY
-        else:
-            mode = WordMatchMode.EXACT
-
-        responses.append(WordMatchResponse(data.Words, data.Responses, mode))
-
-
 def load_commands():
     if not os.path.isfile(commands_file):
         logger.warning("Commands file does not exist, cannot load commands")
@@ -57,6 +41,21 @@ def load_commands():
     file.close()
 
 #load_commands()
+
+def exec_command(cmd: ParseResult):
+    cmdstr = cmd.Command  # type: str
+    if cmdstr.startswith('match'):
+        data = cmd.Data  # type:ResponseData
+        logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
+
+        if cmdstr == 'matchwords':
+            mode = WordMatchMode.WHOLE
+        elif cmdstr == 'matchany':
+            mode = WordMatchMode.ANY
+        else:
+            mode = WordMatchMode.EXACT
+
+        responses.append(WordMatchResponse(data.Words, data.Responses, mode))
 
 
 def load_commands_remote():
@@ -92,6 +91,11 @@ def save_command_remote(cmd: str):
     return response.text.startswith('ok')
 
 
+def reload_commands():
+    responses.clear()
+    load_commands_remote()
+
+
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     if not update.has_message():
         logger.warning('Eval: Update with no message')
@@ -106,7 +110,11 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     if cmd.Found:
         if text.startswith('!') and cmd.Op.Result:  # Special commands
             logger.info('Received special command:' + text)
-            telegram.send_message(msg.Chat.Id, cmd.Data)
+            if text == '!reload':
+                reload_commands()
+                telegram.send_message(msg.Chat.Id, 'Comandi ricaricati.')
+            else:
+                telegram.send_message(msg.Chat.Id, cmd.Data)
 
         elif cmd.Op.Result:
             logger.info('Adding received command:' + text)
@@ -116,7 +124,7 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
                 logger.info('Error adding cmd to remote server:')
                 error = 'Comando non salvato, verrà dimenticato in breve tempo. RIP.'
 
-            exec_command(cmd)
+            exec_command(cmd, msg, telegram)
             telegram.send_message(msg.Chat.Id, "Comando aggiunto! " + error)
         else:
             logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
