@@ -16,7 +16,7 @@ def find_words(msg: str, words, mode=WordMatchMode.WHOLE):
     for word in words:  # type: str
         word = re.escape(word)
         if mode == WordMatchMode.WHOLE:
-            regex = '((?<=\W)|(?<=^))' + word + '+(?=\W|$)'
+            regex = '((?<=\W)|(?<=^))(' + word + '+|(' + word + ')+)(?=\W|$)'
         elif mode == WordMatchMode.ANY:
             regex = word
             logger.debug("Matching any.")
