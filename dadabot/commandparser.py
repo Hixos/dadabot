@@ -1,5 +1,4 @@
 import collections
-from logs import logger
 
 StrOp = collections.namedtuple('StrOp', ['Index', 'Result', 'Text'])
 
@@ -173,7 +172,7 @@ def display_help(cmd: str):
 
 def display_match(cmd: str):
     msg = 'Esempio: \nmatchwords "parola1", "parola2", "parolaN": "risposta1", "risposta2", "rispostaN"\n' \
-           'Comandi disponibili: matchwords, matchany, matchexact'
+           'Comandi disponibili: matchwords, matchany, matchmsg'
 
     if len(cmd) == 0:
         return {dic_result: StrOp(0, True, ''), 'Data': msg}
@@ -190,7 +189,7 @@ def reload(cmd: str):
 commands = [
     ('matchwords', parse_match),
     ('matchany', parse_match),
-    ('matchexact', parse_match),
+    ('matchmsg', parse_match),
 
     ('!msgargs', display_args),
     ('!help', display_help),

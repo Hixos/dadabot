@@ -1,12 +1,13 @@
-from logs import logger
-import os.path
-import requests
 import io
+import os.path
 
-from commandparser import parse_command, ParseResult, ResponseData
-from responses import WordMatchResponse, WordMatchMode
-from telegramapi import TelegramApi
-from shared_data import api_key
+import requests
+from dadabot.responses import WordMatchResponse, WordMatchMode
+from dadabot.shared_data import Constants
+from dadabot.telegramapi import TelegramApi
+
+from dadabot.commandparser import parse_command, ParseResult, ResponseData
+from dadabot.logs import logger
 
 commands_file = 'commands.txt'
 
@@ -14,35 +15,8 @@ cmd_url = 'http://dadabot.altervista.org/'
 cmds_get_url = cmd_url + 'getcommands.php'
 cmds_add_url = cmd_url + 'addcommand.php'
 
-responses = []  # type: list[WordMatchResponse]
 
-
-def load_commands():
-    if not os.path.isfile(commands_file):
-        logger.warning("Commands file does not exist, cannot load commands")
-        return
-
-    file = open(commands_file, 'r')
-
-    while True:
-        cmdstr = file.readline()
-        if len(cmdstr) > 1:
-            cmdstr = cmdstr[0:-1]
-            logger.debug("Loading command: " + cmdstr)
-            cmd = parse_command(cmdstr)
-
-            if cmd.Found and cmd.Op.Result:
-                exec_command(cmd)
-            else:
-                logger.error("Cannot execute loaded command: " + str(cmd))
-        else:
-            break
-
-    file.close()
-
-#load_commands()
-
-def exec_command(cmd: ParseResult):
+def exec_command(cmd: ParseResult, msg: TelegramApi.Message):
     cmdstr = cmd.Command  # type: str
     if cmdstr.startswith('match'):
         data = cmd.Data  # type:ResponseData
@@ -53,30 +27,20 @@ def exec_command(cmd: ParseResult):
         elif cmdstr == 'matchany':
             mode = WordMatchMode.ANY
         else:
-            mode = WordMatchMode.EXACT
+            mode = WordMatchMode.MSG
 
-        responses.append(WordMatchResponse(data.Words, data.Responses, mode))
+        WordMatchResponse.add_list_from_message(data.Words, data.Responses, mode, msg)
 
 
-def load_commands_remote():
-    params = {'skey': api_key}
-    commands = requests.post(cmds_get_url, json=params).text
-    file = io.StringIO(commands)
-    while True:
-        cmdstr = file.readline()
-        if len(cmdstr) > 1:
-            cmdstr = cmdstr[0:-1]
-            logger.debug("Loading command: " + cmdstr)
-            cmd = parse_command(cmdstr)
+def load_commands():
+    WordMatchResponse.add_list_from_database()
 
-            if cmd.Found and cmd.Op.Result:
-                exec_command(cmd)
-            else:
-                logger.error("Cannot execute loaded command: " + cmdstr)
-        else:
-            break
 
-load_commands_remote()
+def reload_commands():
+    load_commands()
+
+
+load_commands()
 
 
 def save_command(cmd: str):
@@ -86,14 +50,9 @@ def save_command(cmd: str):
 
 
 def save_command_remote(cmd: str):
-    params = {'skey': api_key, 'cmd': cmd}
+    params = {'skey': Constants.API_KEY, 'cmd': cmd}
     response = requests.post(cmds_add_url, json=params)
     return response.text.startswith('ok')
-
-
-def reload_commands():
-    responses.clear()
-    load_commands_remote()
 
 
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
@@ -124,7 +83,7 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
                 logger.info('Error adding cmd to remote server:')
                 error = 'Comando non salvato, verrà dimenticato in breve tempo. RIP.'
 
-            exec_command(cmd)
+            exec_command(cmd, msg)
             telegram.send_message(msg.Chat.Id, "Comando aggiunto! " + error)
         else:
             logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
@@ -132,9 +91,9 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
 
         return
 
-    logger.debug("Iterating answers (%d):", len(responses))
-    for answer in responses:
-        logger.debug('Answer: %s', answer.Matchwords[0])
-        if answer.matches(msg.Text):
-            logger.debug('Matched: %s', answer.Matchwords[0])
-            answer.reply(msg, telegram)
+    logger.debug("Iterating answers (%d):", len(WordMatchResponse.List))
+    for response in WordMatchResponse.List:
+        logger.debug('Answer: %s', response.Matchwords[0])
+        if response.matches(msg.Text):
+            logger.debug('Matched: %s', response.Matchwords[0])
+            response.reply(msg, telegram)

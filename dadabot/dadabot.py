@@ -1,18 +1,19 @@
 import os
-from logs import logger
-from shared_data import api_key
 
-from telegramapi import TelegramApi
 from flask import Flask, request
-from messagelogic import evaluate
+from dadabot.messagelogic import evaluate
+from dadabot.shared_data import Constants
+
+from dadabot.logs import logger
+from dadabot.telegramapi import TelegramApi
 
 app = Flask(__name__)
 app_name = os.environ.get('APP_NAME', 'dadabot-test')
 
-telegram = TelegramApi(api_key, app_name)
+telegram = TelegramApi(Constants.API_KEY, app_name)
 
 
-@app.route('/' + api_key, methods=['POST'])
+@app.route('/' + Constants.API_KEY, methods=['POST'])
 def webhook():
     logger.info('Received webhook')
     if request.is_json:
