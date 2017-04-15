@@ -1,1 +1,1 @@
-web: python dadabot/dadabot.py
+web: python dadabot/dadabot_main.py
