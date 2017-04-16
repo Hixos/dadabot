@@ -15,10 +15,9 @@ class WordMatchMode(IntEnum):
 
     @staticmethod
     def to_string(m):
-        m = int(m)
-        if m == 0:
-            return 'matchwhole'
-        elif m == 1:
+        if m == WordMatchMode.WHOLE:
+            return 'matchwords'
+        elif m == WordMatchMode.ANY:
             return 'matchany'
         else:
             return 'matchmsg'
@@ -86,7 +85,7 @@ class WordMatchResponse(Command):
     def load_from_database(self, cmddata: dict):
         C = WordMatchResponse
         super().load_from_database(cmddata)
-        self.Mode = cmddata[WordMatchResponse.COL_TYPE]
+        self.Mode = WordMatchMode(int(cmddata[WordMatchResponse.COL_TYPE]))
         id = cmddata[Command.COL_ID]
 
         query = Database.select_str([C.WORDS_COL_CMD_ID, C.WORDS_COL_TEXT], [C.WORDS_TABLE],
@@ -148,7 +147,7 @@ class WordMatchResponse(Command):
             return None
 
     @classmethod
-    def from_message(cls, words, responses, mode, msg: TelegramApi.Message):
+    def from_message(cls, words, responses, mode: WordMatchMode, msg: TelegramApi.Message):
         wmr = cls()
         if len(words) == 0 or len(responses) == 0:
             return None

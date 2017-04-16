@@ -57,21 +57,21 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
             if r.matches(s):
                 matching.append(r)
 
-        msgtext = 'Matching commands: \n'
+        msgtext = 'Comandi corrispondendti: \n'
         for m in matching:
-            msgtext += 'id: ' + str(m.Id) + ' -> ' + list_strings(m.Matchwords) + ' : ' + list_strings(m.Responses) \
-                       + ' (' + WordMatchMode.to_string(m.Mode) + ')\n'
+            msgtext += '--id: ' + str(m.Id) + ' -> ' + WordMatchMode.to_string(m.Mode) + ' ' + \
+                       list_strings(m.Matchwords) + ' : ' + list_strings(m.Responses) + '\n'
 
         telegram.send_message(msg.Chat.Id, msgtext)
     elif cmdstr.startswith('add'):
         data = cmd.Data  # type:AddData
 
         if cmdstr == 'addwords':
-            word = 'Parole'
+            word = 'parole'
             table = WordMatchResponse.WORDS_TABLE
             cols = WordMatchResponse.WORD_COLS
         else:
-            word = 'Risposte'
+            word = 'risposte'
             table = WordMatchResponse.RESPONSES_TABLE
             cols = WordMatchResponse.RESP_COLS
 
@@ -89,13 +89,14 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
         if not error:
             telegram.send_message(msg.Chat.Id, word + " aggiunte con successo.")
         else:
-            telegram.send_message(msg.Chat.Id,
-                                  "Errore: solo %d / %d %s aggiunte con successo".format(succ, len(data.Strings), word))
+            msgtext = "Errore: %d su %d %s aggiunte con successo" % (succ, len(data.Strings), word)
+            telegram.send_message(msg.Chat.Id, msgtext)
         if succ > 0:
             reload_commands()
 
 
 load_commands()
+
 
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     if not update.has_message():
