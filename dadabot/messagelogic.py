@@ -5,8 +5,9 @@ import requests
 from dadabot.responses import WordMatchResponse, WordMatchMode
 from dadabot.shared_data import Constants
 from dadabot.telegramapi import TelegramApi
+from dadabot.data import Database
 
-from dadabot.commandparser import parse_command, ParseResult, ResponseData
+from dadabot.commandparser import parse_command, ParseResult, MatchData, AddData
 from dadabot.logs import logger
 
 commands_file = 'commands.txt'
@@ -16,20 +17,14 @@ cmds_get_url = cmd_url + 'getcommands.php'
 cmds_add_url = cmd_url + 'addcommand.php'
 
 
-def exec_command(cmd: ParseResult, msg: TelegramApi.Message):
-    cmdstr = cmd.Command  # type: str
-    if cmdstr.startswith('match'):
-        data = cmd.Data  # type:ResponseData
-        logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
-
-        if cmdstr == 'matchwords':
-            mode = WordMatchMode.WHOLE
-        elif cmdstr == 'matchany':
-            mode = WordMatchMode.ANY
-        else:
-            mode = WordMatchMode.MSG
-
-        WordMatchResponse.add_list_from_message(data.Words, data.Responses, mode, msg)
+def list_strings(strings):
+    q = ''
+    n = len(strings)
+    for i, d in enumerate(strings):
+        q += '"' + d + '"'
+        if i != n - 1:
+            q += ', '
+    return q
 
 
 def load_commands():
@@ -40,20 +35,67 @@ def reload_commands():
     load_commands()
 
 
+def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramApi):
+    cmdstr = cmd.Command  # type: str
+    if cmdstr.startswith('match'):
+        data = cmd.Data  # type:MatchData
+        logger.debug("[%s] Adding matches: %s", cmd.Command, str(data.Words))
+
+        if cmdstr == 'matchwords':
+            mode = WordMatchMode.WHOLE
+        elif cmdstr == 'matchany':
+            mode = WordMatchMode.ANY
+        else:
+            mode = WordMatchMode.MSG
+
+        WordMatchResponse.add_list_from_message(data.Words, data.Responses, mode, msg)
+        telegram.send_message(msg.Chat.Id, "Comando aggiunto! ")
+    elif cmdstr == 'listmatching':
+        s = cmd.Data
+        matching = []  # type: list[WordMatchResponse]
+        for r in WordMatchResponse.List:
+            if r.matches(s):
+                matching.append(r)
+
+        msgtext = 'Matching commands: \n'
+        for m in matching:
+            msgtext += 'id: ' + str(m.Id) + ' -> ' + list_strings(m.Matchwords) + ' : ' + list_strings(m.Responses) \
+                       + ' (' + WordMatchMode.to_string(m.Mode) + ')\n'
+
+        telegram.send_message(msg.Chat.Id, msgtext)
+    elif cmdstr.startswith('add'):
+        data = cmd.Data  # type:AddData
+
+        if cmdstr == 'addwords':
+            word = 'Parole'
+            table = WordMatchResponse.WORDS_TABLE
+            cols = WordMatchResponse.WORD_COLS
+        else:
+            word = 'Risposte'
+            table = WordMatchResponse.RESPONSES_TABLE
+            cols = WordMatchResponse.RESP_COLS
+
+        id = data.Id
+
+        succ = 0
+        error = False
+        for s in data.Strings:
+            r = Database.insert(table, cols, [s, id])
+            if r:
+                succ += 1
+            else:
+                error = True
+                break
+        if not error:
+            telegram.send_message(msg.Chat.Id, word + " aggiunte con successo.")
+        else:
+            telegram.send_message(msg.Chat.Id,
+                                  "Errore: solo %d / %d %s aggiunte con successo".format(succ, len(data.Strings), word))
+        if succ > 0:
+            reload_commands()
+
+
 load_commands()
-
-
-def save_command(cmd: str):
-    file = open(commands_file, 'a+')
-    file.write(cmd + '\n')
-    file.close()
-
-
-def save_command_remote(cmd: str):
-    params = {'skey': Constants.API_KEY, 'cmd': cmd}
-    response = requests.post(cmds_add_url, json=params)
-    return response.text.startswith('ok')
-
 
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     if not update.has_message():
@@ -78,13 +120,8 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
         elif cmd.Op.Result:
             logger.info('Adding received command:' + text)
 
-            error = ''
-            if not save_command_remote(text):
-                logger.info('Error adding cmd to remote server:')
-                error = 'Comando non salvato, verrà dimenticato in breve tempo. RIP.'
+            exec_command(cmd, msg, telegram)
 
-            exec_command(cmd, msg)
-            telegram.send_message(msg.Chat.Id, "Comando aggiunto! " + error)
         else:
             logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
             telegram.send_message(msg.Chat.Id, "Errore: " + cmd.Op.Text + ". Posizione: " + str(cmd.Op.Index))

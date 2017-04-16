@@ -13,6 +13,16 @@ class WordMatchMode(IntEnum):
     ANY = 1
     MSG = 2
 
+    @staticmethod
+    def to_string(m):
+        m = int(m)
+        if m == 0:
+            return 'matchwhole'
+        elif m == 1:
+            return 'matchany'
+        else:
+            return 'matchmsg'
+
 
 def find_words(msg: str, words, mode=WordMatchMode.WHOLE):
     for word in words:  # type: str

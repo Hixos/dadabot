@@ -4,7 +4,9 @@ StrOp = collections.namedtuple('StrOp', ['Index', 'Result', 'Text'])
 
 ParseResult = collections.namedtuple('ParseResult', ['Found', 'Command', 'Op', 'Data'])
 
-ResponseData = collections.namedtuple('ResponseData', ['Words', 'Responses'])
+MatchData = collections.namedtuple('ResponseData', ['Words', 'Responses'])
+
+AddData = collections.namedtuple('AddData', ['Id', 'Strings'])
 
 text_delimiter = '"'
 
@@ -137,9 +139,96 @@ def parse_match(cmd: str):
         can_proceed = False
 
     if clean_end:
-        return {dic_result: StrOp(i, True, ''), 'Data': ResponseData(match_words, responses)}
+        return {dic_result: StrOp(i, True, ''), 'Data': MatchData(match_words, responses)}
     elif len(responses) == 0:
         return {dic_result: StrOp(i, False, 'Non hai scritto nessuna risposta!')}
+    else:
+        return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+
+
+def parse_add(cmd: str):
+    section = 0
+    clean_end = False
+    can_proceed = True
+
+    id = -1
+    strings = []
+
+    i = 0
+
+    while i < len(cmd):
+        clean_end = False
+
+        r = skip_whitespaces(cmd, i)
+        if r.Result:
+            i = r.Index
+        else:
+            return {dic_result: r}
+
+        if cmd[i] == text_delimiter:
+            if not can_proceed:
+                return {dic_result: StrOp(i, False, "Virgole mancanti")}
+
+            r = read_text(cmd, i + 1)
+            if r.Result:
+                i = r.Index
+                if section == 0:
+                    try:
+                        id = int(r.Text)
+                    except ValueError:
+                        return {dic_result: StrOp(i, False, 'Non hai specificato un indice!')}
+                elif section == 1:
+                    strings.append(r.Text)
+                    clean_end = True
+            else:
+                return {dic_result: r}
+        elif id == -1:
+            return {dic_result: StrOp(i, False, 'Non hai specificato un indice!')}
+        elif cmd[i] == ',':
+            if section == 0:
+                return {dic_result: StrOp(i, False, 'Specifica un solo indice!')}
+            i += 1
+            can_proceed = True
+            continue
+        elif cmd[i] == ':':
+            i += 1
+            section += 1
+            can_proceed = True
+            if section > 1:
+                return {dic_result: StrOp(i, False, 'Il comando non termina correttamente')}
+
+            continue
+        else:
+            return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+
+        can_proceed = False
+
+    if clean_end:
+        return {dic_result: StrOp(i, True, ''), 'Data': AddData(id, strings)}
+    elif len(strings) == 0:
+        return {dic_result: StrOp(i, False, 'Non hai scritto nessuna risposta!')}
+    else:
+        return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+
+
+
+def parse_list_matching(cmd: str):
+    i = 0
+
+    r = skip_whitespaces(cmd, i)
+    if r.Result:
+        i = r.Index
+    else:
+        return {dic_result: r}
+
+    if cmd[i] == text_delimiter:
+
+        r = read_text(cmd, i + 1)
+        if r.Result:
+            i = r.Index
+            return {dic_result: StrOp(i, True, ''), 'Data': r.Text}
+        else:
+            return {dic_result: r}
     else:
         return {dic_result: StrOp(i, False, 'Errore di sintassi')}
 
@@ -190,6 +279,9 @@ commands = [
     ('matchwords', parse_match),
     ('matchany', parse_match),
     ('matchmsg', parse_match),
+    ('listmatching', parse_list_matching),
+    ('addwords', parse_add),
+    ('addresponses', parse_add),
 
     ('!msgargs', display_args),
     ('!help', display_help),
