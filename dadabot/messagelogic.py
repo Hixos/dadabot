@@ -57,7 +57,7 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
             if r.matches(s):
                 matching.append(r)
 
-        msgtext = 'Comandi corrispondendti: \n'
+        msgtext = 'Comandi corrispondenti: \n'
         for m in matching:
             msgtext += '--id: ' + str(m.Id) + ' -> ' + WordMatchMode.to_string(m.Mode) + ' ' + \
                        list_strings(m.Matchwords) + ' : ' + list_strings(m.Responses) + '\n'
