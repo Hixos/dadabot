@@ -1,5 +1,6 @@
 import requests
-from logs import logger
+
+from dadabot.logs import logger
 
 
 class TelegramApi:
@@ -10,8 +11,8 @@ class TelegramApi:
         def __init__(self, data):
             self.Id = int(data.get('id'))
             self.FirstName = data.get('first_name')
-            self.LastName = data.get('last_name')
-            self.Username = data.get('username')
+            self.LastName = data.get('last_name', '')
+            self.Username = data.get('username', '')
 
         def to_string(self):
             return 'USER: ' + str(self.Id) + ' ' + self.FirstName + ' ' + self.LastName + ' ' + self.Username
@@ -22,7 +23,7 @@ class TelegramApi:
     class Chat:
         def __init__(self, data):
             self.Id = int(data.get('id'))
-            self.Type = data.get('type', '')
+            self.Type = data.get('type')
             self.Title = data.get('title', '')
             self.FirstName = data.get('first_name', '')
             self.LastName = data.get('last_name', '')
@@ -74,7 +75,7 @@ class TelegramApi:
     def send_message(self, chat, text):
         params = {'chat_id': chat, 'text': text}
         response = requests.post(self.url + 'sendMessage', data=params)
-        logger.info('Send_mess response: %s', response.raw)
+        #logger.info('Send_mess response: %s', response.text)
         return response
 
     def set_webhook(self):
