@@ -1,4 +1,5 @@
 import collections
+import re
 
 StrOp = collections.namedtuple('StrOp', ['Index', 'Result', 'Text'])
 
@@ -211,8 +212,7 @@ def parse_add(cmd: str):
         return {dic_result: StrOp(i, False, 'Errore di sintassi')}
 
 
-
-def parse_list_matching(cmd: str):
+def parse_id(cmd: str):
     i = 0
 
     r = skip_whitespaces(cmd, i)
@@ -269,24 +269,40 @@ def display_match(cmd: str):
         return {dic_result: StrOp(0, False, '')}
 
 
-def reload(cmd: str):
+def check_no_more_data(cmd: str):
     if len(cmd) == 0:
         return {dic_result: StrOp(0, True, ''), 'Data': ''}
     else:
         return {dic_result: StrOp(0, False, '')}
 
+
+def echo(cmd: str):
+    if len(cmd) == 0:
+        return {dic_result: StrOp(0, True, ''), 'Data': 0}
+
+    data = re.search('^[ ]+?(-?[\d]+)?$', cmd, re.IGNORECASE)
+    if data is not None:
+        id = int(data.group(1))
+        return {dic_result: StrOp(0, True, ''), 'Data': id}
+
+    return {dic_result: StrOp(0, False, '')}
+
 commands = [
     ('matchwords', parse_match),
     ('matchany', parse_match),
     ('matchmsg', parse_match),
-    ('listmatching', parse_list_matching),
+    ('listmatching', parse_id),
     ('addwords', parse_add),
     ('addresponses', parse_add),
+    #('remove', parse_id),  NOT READY YET
+
+    ('listchats', check_no_more_data),
+    ('echo', echo),
 
     ('!msgargs', display_args),
     ('!help', display_help),
     ('!match', display_match),
-    ('!reload', reload)
+    ('!reload', check_no_more_data)
 ]
 
 

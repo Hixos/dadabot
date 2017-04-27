@@ -38,21 +38,22 @@ class Database:
 
     @staticmethod
     def query_bool(q: str):
-        return Database.query(q)[Constants.KEY_SQL_SUCCESS]
+        r = Database.query(q)
+        return r.get(Constants.KEY_SQL_SUCCESS, False)
 
     @staticmethod
     def get_rows(data: dict, idx: int):
-        if not data.get(Constants.KEY_SQL_SUCCESS):
+        if not data.get(Constants.KEY_SQL_SUCCESS, False):
             return False, None
-        if len(data.get(Constants.KEY_SQL_RESULTS, [])) > 0:
-            results = data.get(Constants.KEY_SQL_RESULTS)  # type: list[dict]
 
-            n = len(results)
-            if idx < 0:
-                idx = n + idx
+        results = data.get(Constants.KEY_SQL_RESULTS, [])  # type: list[dict]
+        n = len(results)
 
-            if 0 <= idx < n:
-                return True, results[idx]
+        if idx < 0:
+            idx = n + idx
+
+        if 0 <= idx < n:
+            return True, results[idx]
 
         return False, None
 
@@ -127,9 +128,8 @@ class Database:
     @staticmethod
     def insert(table, cols, data):
         q = Database.insert_str(table,cols, data)
-        r = Database.query(q)
 
-        return r[Constants.KEY_SQL_SUCCESS]
+        return Database.query_bool(q)
 
     @staticmethod
     def replace_str(table, cols, data):
@@ -138,9 +138,23 @@ class Database:
     @staticmethod
     def replace(table, cols, data):
         q = Database.replace_str(table,  cols, data)
-        r = Database.query(q)
+        return Database.query_bool(q)
 
-        return r[Constants.KEY_SQL_SUCCESS]
+    @staticmethod
+    def delete_str(table, where_tuple):
+        q = "DELETE FROM " + table + " WHERE "
+        n = len(where_tuple)
+
+        for i, w in enumerate(where_tuple):
+            q += w[0] + " = '" + Database.escape(str(w[1])) + "'"
+            print(q)
+            if i != n - 1:
+                q += ' AND '
+        return q
+
+    @staticmethod
+    def delete(table, where_tuple):
+        return Database.query_bool(Database.delete_str(table, where_tuple))
 
 
 class User:
@@ -203,7 +217,9 @@ class Chat:
 
     @classmethod
     def from_database(cls, chatdata: dict):
-        id = int(chatdata[Command.COL_CHAT_ID])
+        id = int(chatdata.get(Command.COL_CHAT_ID, 0))
+        if id == 0:
+            id = int(chatdata.get(Chat.COL_ID, 0))
         type = chatdata[Chat.COL_TYPE]
         title = chatdata[Chat.COL_TITLE]
         first_name = chatdata[Chat.COL_FIRST_NAME]
