@@ -80,7 +80,7 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
         for chat in chats:
             if chat.Type == 'private':
                 msgtext += "[%s] %s\n" % (chat.Id, chat.FirstName)
-            elif chat.Type == 'group':
+            elif chat.Type == 'group' or chat.Type == 'supergroup':
                 msgtext += "[%s] %s\n" % (chat.Id, chat.Title)
             if len(msgtext) > 4096:
                 msgtext = msgtext[:4096]
