@@ -143,9 +143,8 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
             telegram.send_message(msg.Chat.Id, msgtext)
         if succ > 0:
             reload_commands()
-    elif cmdstr == 'remove':
+    elif cmdstr.startswith('remove'):
         id = cmd.Data  # type:str
-
         table = Command.TABLE
         col = Command.COL_ID
 

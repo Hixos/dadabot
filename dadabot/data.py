@@ -147,14 +147,16 @@ class Database:
 
         for i, w in enumerate(where_tuple):
             q += w[0] + " = '" + Database.escape(str(w[1])) + "'"
-            print(q)
             if i != n - 1:
                 q += ' AND '
+
+        print(q)
         return q
 
     @staticmethod
     def delete(table, where_tuple):
-        return Database.query_bool(Database.delete_str(table, where_tuple))
+        r = Database.query(Database.delete_str(table, where_tuple))
+        return r.get(Constants.KEY_SQL_RESULT_AFFECTED_ROWS, 0) > 0
 
 
 class User:
