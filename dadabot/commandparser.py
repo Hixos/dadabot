@@ -294,7 +294,7 @@ commands = [
     ('listmatching', parse_id),
     ('addwords', parse_add),
     ('addresponses', parse_add),
-    #('remove', parse_id),  NOT READY YET
+    ('remove', parse_id),
 
     ('listchats', check_no_more_data),
     ('echo', echo),
