@@ -149,6 +149,8 @@ class Database:
             q += w[0] + " = '" + Database.escape(str(w[1])) + "'"
             if i != n - 1:
                 q += ' AND '
+
+        print(q)
         return q
 
     @staticmethod
