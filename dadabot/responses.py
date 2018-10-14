@@ -76,7 +76,7 @@ class WordMatchResponse(Command):
         answ = random.choice(self.Responses)  # type:
 
         try:
-            answ = answ.format(Msg=msg, Cntr=self.MatchCounter)
+            answ = answ.format(Msg=msg, count=self.MatchCounter)
         except (KeyError, AttributeError):
             pass
 
