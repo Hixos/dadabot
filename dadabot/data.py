@@ -270,7 +270,6 @@ class Command:
         self.User = User.from_database(cmddata)
         self.Chat = Chat.from_database(cmddata)
 
-
     def load_from_message(self, msg: TelegramApi.Message):
         self.BotName = Constants.APP_NAME
         self.User = User.from_message(msg)
@@ -284,7 +283,7 @@ class Command:
 
     def increment_match_counter(self):
         self.MatchCounter += 1
-        q = "UPDATE  " + Command.TABLE + "SET " + Command.COL_MATCH_COUNT + " = " + Command.COL_MATCH_COUNT \
+        q = "UPDATE  " + Command.TABLE + " SET " + Command.COL_MATCH_COUNT + " = " + Command.COL_MATCH_COUNT \
             + " + 1 WHERE " + Command.COL_ID + " = " + str(self.Id)
 
         logger.info("Increment query: " + q)
