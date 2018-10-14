@@ -203,3 +203,4 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
             if response.matches(msg.Text):
                 logger.debug('Matched: %s', response.Matchwords[0])
                 response.reply(msg, telegram)
+                response.increment_match_counter()

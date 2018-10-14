@@ -248,21 +248,24 @@ class Chat:
 class Command:
     TABLE = 'commands'
     COL_ID = TABLE + '.cmd_id'
+    COL_MATCH_COUNT = TABLE + '.match_cntr'
     COL_CREATION_TIME = TABLE + '.creation_time'
     COL_USER_ID = TABLE + '.user_id'
     COL_CHAT_ID = TABLE + '.chat_id'
     COL_BOT_NAME = TABLE + '.bot_name'
 
-    COLS = [COL_USER_ID, COL_CHAT_ID, COL_BOT_NAME]
+    COLS = [COL_MATCH_COUNT, COL_USER_ID, COL_CHAT_ID, COL_BOT_NAME]
 
     def __init__(self):
         self.Id = -1
+        self.MatchCounter = 0
         self.User = None  # type: User
         self.Chat = None  # type: Chat
         self.BotName = ''
 
     def load_from_database(self, cmddata: dict):
         self.Id = cmddata[Command.COL_ID]
+        self.MatchCounter = cmddata[Command.COL_MATCH_COUNT]
         self.BotName = cmddata[Command.COL_BOT_NAME]
         self.User = User.from_database(cmddata)
         self.Chat = Chat.from_database(cmddata)
@@ -274,8 +277,18 @@ class Command:
 
     def save_to_database_str(self):
         s = self.User.save_to_database_str() + '; ' + self.Chat.save_to_database_str() + '; '
-        s += Database.insert_str(Command.TABLE, Command.COLS, [self.User.Id, self.Chat.Id, self.BotName])
+        s += Database.insert_str(Command.TABLE, Command.COLS, [self.MatchCounter, self.User.Id, self.Chat.Id,
+                                                               self.BotName])
         return s
+
+    def increment_match_counter(self):
+        self.MatchCounter += 1
+        q = "UPDATE  " + Command.TABLE + "SET " + Command.COL_MATCH_COUNT + " = " + Command.COL_MATCH_COUNT \
+            + " + 1 WHERE " + Command.COL_ID + " = " + str(self.Id)
+
+        logger.info("Increment query: " + q)
+        if not Database.query_bool(q):
+            logger.error("Error incrementing match counter.")
 
     def save_to_database(self):
         s = self.save_to_database_str() + "; SELECT LAST_INSERT_ID() AS 'lastid'"
