@@ -265,10 +265,11 @@ class Command:
 
     def load_from_database(self, cmddata: dict):
         self.Id = cmddata[Command.COL_ID]
-        self.MatchCounter = cmddata[Command.COL_MATCH_COUNT]
+        self.MatchCounter = int(cmddata[Command.COL_MATCH_COUNT])
         self.BotName = cmddata[Command.COL_BOT_NAME]
         self.User = User.from_database(cmddata)
         self.Chat = Chat.from_database(cmddata)
+
 
     def load_from_message(self, msg: TelegramApi.Message):
         self.BotName = Constants.APP_NAME
