@@ -23,7 +23,7 @@ def webhook():
             logger.error('request.get_json() returned None')
             return '', 400
 
-        TelegramApi.process_update_json(j, evaluate_update)
+        telegram.process_update_json(j, evaluate_update)
         return '', 200
     else:
         logger.warning('Received non-json request: ' + request.data)
