@@ -32,7 +32,10 @@ def read_text(s: str, i: int):
     while i < len(s):
         c = s[i]
         if force_read:
-            text += c
+            if c == "\"":
+                text += c
+            else:
+                text += "\\"
             force_read = False
         elif c == '\\':
             force_read = True

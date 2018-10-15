@@ -8,7 +8,7 @@ from dadabot.logs import logger
 from dadabot.telegramapi import TelegramApi
 
 app = Flask(__name__)
-app_name = os.environ.get('APP_NAME', 'dadabot-test')
+app_name = os.environ.get('APP_NAME', 'dadabot1')
 
 telegram = TelegramApi(Constants.API_KEY, app_name)
 
@@ -36,7 +36,6 @@ def evaluate_update(update: TelegramApi.Update):
 
 # Start the web app (only if on remote server)
 if __name__ == "__main__":
-
     if 'PORT' in os.environ:
         telegram.set_webhook()
 

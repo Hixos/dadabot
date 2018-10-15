@@ -10,7 +10,7 @@ from dadabot.data import Database, Command, Chat
 from dadabot.commandparser import parse_command, ParseResult, MatchData, AddData
 from dadabot.logs import logger
 
-chats = [] # list[Chat]
+chats = []  # list[Chat]
 echo_to_id = 0  # Echo messages from my chat to this chat, don't echo if 0
 my_chat_id = 227067835
 
@@ -180,7 +180,7 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
         c.save_to_database()
 
     logger.info("Received message: " + msg.Text)
-    text = msg.Text.replace('\n', ' ').replace('\r', '')  # type: str
+    text = msg.Text  # .replace('\n', ' ').replace('\r', '')  # type: str
     cmd = parse_command(text)
 
     if cmd.Found:

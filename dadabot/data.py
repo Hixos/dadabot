@@ -8,16 +8,31 @@ dburl = 'http://dadabot.altervista.org/query.php'
 
 
 class Database:
-    _escape_chars = ['\\', '\'', '"', 'Z', '%', '_']
-    _remove_chars = ['\b', '\n', '\r', '\t', '\0']
+    _escape_chars = ['\\', '\'', '"', '%', '_']
+    _replace_chars = {chr(26): "\Z",
+                      '\n': "\\n",
+                      '\b': "\\b",
+                      '\r': "\\r",
+                      '\t': "\\t"}
+
+    _remove_chars = ['\0']
 
     @staticmethod
     def escape(txt: str):
         for c in Database._escape_chars:
             txt = txt.replace(c, '\\' + c)
 
+        for k, v in Database._replace_chars.items():
+            txt = txt.replace(k, v)
+
         for c in Database._remove_chars:
             txt = txt.replace(c, '')
+        return txt
+
+    @staticmethod
+    def unescape(txt: str):
+        for c in Database._escape_chars:
+            txt = txt.replace('\\' + c, c)
 
         return txt
 

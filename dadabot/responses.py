@@ -1,4 +1,5 @@
 import random
+import requests
 import re
 from enum import IntEnum
 
@@ -80,7 +81,11 @@ class WordMatchResponse(Command):
         except (KeyError, AttributeError):
             pass
 
-        telegram.send_message(msg.Chat.Id, answ)
+        r = telegram.send_message(msg.Chat.Id, answ)
+        if r.status_code != requests.codes.ok:
+            logger.error("Error posting message: {} - {}".format(r.status_code, r.reason))
+        else:
+            r.json()
 
     def load_from_database(self, cmddata: dict):
         C = WordMatchResponse
@@ -101,14 +106,14 @@ class WordMatchResponse(Command):
             return False
 
         for row in rows:
-            self.Matchwords.append(row[C.WORDS_COL_TEXT])
+            self.Matchwords.append(Database.unescape(row[C.WORDS_COL_TEXT]))
 
         success, rows = Database.get_rows(data, 1)
         if not success:
             return False
 
         for row in rows:
-            self.Responses.append(row[C.RESPONSES_COL_TEXT])
+            self.Responses.append(Database.unescape(row[C.RESPONSES_COL_TEXT]))
 
         return True
 
@@ -124,6 +129,7 @@ class WordMatchResponse(Command):
         s = Database.insert_str(C.TABLE, cols, [self.Id, int(self.Mode)])
 
         for word in self.Matchwords:
+            logger.info(word)
             s += '; ' + Database.insert_str(C.WORDS_TABLE, C.WORD_COLS, [word, self.Id])
 
         for resp in self.Responses:

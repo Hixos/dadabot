@@ -11,7 +11,7 @@ class Constants:
     if 'APP_NAME' in os.environ:
         APP_NAME = os.environ['APP_NAME']
     else:
-        APP_NAME = 'dadabot-test'
+        APP_NAME = 'dadabot1'
 
     KEY_SQL_PSK = 'skey'
     KEY_SQL_QUERY = 'query'
