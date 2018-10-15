@@ -124,7 +124,7 @@ class TelegramApi:
         for upd in updates:
             if upd.Id >= self._offset:
                 self._offset = upd.Id + 1
-
+        logger.info("Current offset: {}\n".format(self._offset))
         return updates
 
     def process_updates(self, upd_eval):
@@ -135,10 +135,13 @@ class TelegramApi:
             TelegramApi.process_updates_list(updates, upd_eval)
             cond = len(updates) > 0
 
-    @staticmethod
-    def process_update_json(json_data, upd_eval):
+    def process_update_json(self, json_data, upd_eval):
         update = TelegramApi.Update(json_data)
-        upd_eval(update)
+        if update.Id > self._offset:
+            self._offset = update.Id
+            upd_eval(update)
+        else:
+            logger.warning("Discarded update with id: {}. offset is: {}\n".format(update.Id, self._offset))
 
     @staticmethod
     def process_updates_list(update_list, upd_eval):

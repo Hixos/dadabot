@@ -16,23 +16,22 @@ telegram = TelegramApi(Constants.API_KEY, app_name)
 @app.route('/' + Constants.API_KEY, methods=['POST'])
 def webhook():
     logger.info('Received webhook')
-    if request.is_json:
+    if request.method == 'POST' and request.is_json:
         j = request.get_json(silent=True)
 
         if j is None:
             logger.error('request.get_json() returned None')
-            return 'Error'
+            return '', 400
 
         TelegramApi.process_update_json(j, evaluate_update)
+        return '', 200
     else:
         logger.warning('Received non-json request: ' + request.data)
-
-    return 'OK'
+        return '', 400
 
 
 def evaluate_update(update: TelegramApi.Update):
     evaluate(telegram, update)
-
 
 # Start the web app (only if on remote server)
 if __name__ == "__main__":
