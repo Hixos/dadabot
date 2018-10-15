@@ -75,7 +75,9 @@ class TelegramApi:
     def send_message(self, chat, text):
         params = {'chat_id': chat, 'text': text}
         response = requests.post(self.url + 'sendMessage', data=params)
-        #logger.info('Send_mess response: %s', response.text)
+        logger.info('Send_mess response: %s', response.text)
+        if response.status_code != requests.codes.ok:
+            logger.info('Status code: %s', response.status_code)
         return response
 
     def set_webhook(self):
