@@ -3,6 +3,9 @@ import requests
 from dadabot.logs import logger
 from dadabot.shared_data import Constants
 from dadabot.telegramapi import TelegramApi
+from enum import IntEnum
+import random
+import re
 
 dburl = 'http://dadabot.altervista.org/query.php'
 
@@ -174,7 +177,7 @@ class Database:
         return r.get(Constants.KEY_SQL_RESULT_AFFECTED_ROWS, 0) > 0
 
 
-class User:
+class User(object):
     TABLE = 'users'
     COL_ID = TABLE + '.user_id'
     COL_FIRST_NAME = TABLE + '.first_name'
@@ -217,7 +220,7 @@ class User:
         return Database.query_bool(self.save_to_database_str())
 
 
-class Chat:
+class Chat(object):
     TABLE = 'chats'
     COL_ID = TABLE + '.chat_id'
     COL_TYPE = TABLE + '.chat_type'
@@ -260,7 +263,7 @@ class Chat:
         return Database.query_bool(self.save_to_database_str())
 
 
-class Command:
+class Command(object):
     TABLE = 'commands'
     COL_ID = TABLE + '.cmd_id'
     COL_MATCH_COUNT = TABLE + '.match_cntr'
@@ -271,24 +274,12 @@ class Command:
 
     COLS = [COL_MATCH_COUNT, COL_USER_ID, COL_CHAT_ID, COL_BOT_NAME]
 
-    def __init__(self):
-        self.Id = -1
-        self.MatchCounter = 0
-        self.User = None  # type: User
-        self.Chat = None  # type: Chat
-        self.BotName = ''
-
-    def load_from_database(self, cmddata: dict):
-        self.Id = cmddata[Command.COL_ID]
-        self.MatchCounter = int(cmddata[Command.COL_MATCH_COUNT])
-        self.BotName = cmddata[Command.COL_BOT_NAME]
-        self.User = User.from_database(cmddata)
-        self.Chat = Chat.from_database(cmddata)
-
-    def load_from_message(self, msg: TelegramApi.Message):
-        self.BotName = Constants.APP_NAME
-        self.User = User.from_message(msg)
-        self.Chat = Chat.from_message(msg)
+    def __init__(self, cmdid, matchcounter, botname, user: User, chat: Chat):
+        self.Id = cmdid
+        self.MatchCounter = matchcounter
+        self.User = user
+        self.Chat = chat
+        self.BotName = botname
 
     def save_to_database_str(self):
         s = self.User.save_to_database_str() + '; ' + self.Chat.save_to_database_str() + '; '
@@ -316,3 +307,198 @@ class Command:
         else:
             logger.error('Error on saving data to database: Cannot retrieve command id')
             return False
+
+
+class WordMatchMode(IntEnum):
+    WORD = 0
+    ANY = 1
+    WHOLEMSG = 2
+
+    @staticmethod
+    def to_string(m):
+        if m == WordMatchMode.WORD:
+            return '/match'
+        elif m == WordMatchMode.ANY:
+            return '/matchany'
+        else:
+            return '/matchmsg'
+
+
+def find_words(msg: str, words, mode=WordMatchMode.WORD):
+    for word in words:  # type: str
+        word = re.escape(word)
+        if mode == WordMatchMode.WORD:
+            regex = '((?<=\W)|(?<=^))(' + word + '+|(' + word + ')+)(?=\W|$)'
+        elif mode == WordMatchMode.ANY:
+            regex = word
+        else:
+            regex = '(^)(?:\s)*(' + word + '+)(?:\W)*(?:$)'
+
+        p = re.compile(regex, re.IGNORECASE)
+
+        r = p.search(msg)
+        if r is not None:
+            return r.start()
+    return -1
+
+
+class WordMatchResponse(Command):
+    TABLE = 'match_words'
+    COL_ID = TABLE + '.cmd_id'
+    COL_TYPE = TABLE + '.match_type'
+
+    WORDS_TABLE = 'words'
+    RESPONSES_TABLE = 'responses'
+
+    WORDS_COL_ID = WORDS_TABLE + '.word_id'
+    WORDS_COL_TEXT = WORDS_TABLE + '.word_text'
+    WORDS_COL_CMD_ID = WORDS_TABLE + '.cmd_id'
+
+    RESPONSES_COL_ID = RESPONSES_TABLE + '.resp_id'
+    RESPONSES_COL_TEXT = RESPONSES_TABLE + '.resp_text'
+    RESPONSES_COL_CMD_ID = RESPONSES_TABLE + '.cmd_id'
+
+    COLS = [COL_TYPE]
+    WORD_COLS = [WORDS_COL_TEXT, WORDS_COL_CMD_ID]
+    RESP_COLS = [RESPONSES_COL_TEXT, RESPONSES_COL_CMD_ID]
+
+    List = []  # type: list
+
+    def __init__(self, cmdid, matchcounter, botname, user, chat, mode, matchwords, responses):
+        super().__init__(cmdid, matchcounter, botname, user, chat)
+        self.Matchwords = matchwords
+        self.Responses = responses
+        self.Mode = mode
+
+    def matches(self, msg: str):
+        return find_words(msg, self.Matchwords, self.Mode) >= 0
+
+    def reply(self, msg: TelegramApi.Message, telegram: TelegramApi):
+        answ = random.choice(self.Responses)  # type:
+
+        try:
+            answ = answ.format(Msg=msg, count=self.MatchCounter)
+        except (KeyError, AttributeError):
+            pass
+
+        r = telegram.send_message(msg.Chat.Id, answ)
+        if r.status_code != requests.codes.ok:
+            logger.error("Error posting message: {} - {}".format(r.status_code, r.reason))
+        else:
+            r.json()
+
+    def save_to_database(self):
+        if not super().save_to_database():
+            logger.error("Error saving to database.")
+            return False
+
+        C = WordMatchResponse
+
+        cols = [C.COL_ID]
+        cols.extend(C.COLS)
+
+        s = Database.insert_str(C.TABLE, cols, [self.Id, int(self.Mode)])
+
+        for word in self.Matchwords:
+            logger.info(word)
+            s += '; ' + Database.insert_str(C.WORDS_TABLE, C.WORD_COLS, [word, self.Id])
+
+        for resp in self.Responses:
+            s += '; ' + Database.insert_str(C.RESPONSES_TABLE, C.RESP_COLS, [resp, self.Id])
+
+        logger.info(s)
+        success = Database.query_bool(s)
+        if not success:
+            logger.error("Error saving to database.")
+            return False
+
+        return True
+
+    @classmethod
+    def from_database(cls, cmddata: dict):
+        Id = int(cmddata[Command.COL_ID])
+        MatchCounter = int(cmddata[Command.COL_MATCH_COUNT])
+        BotName = cmddata[Command.COL_BOT_NAME]
+        user = User.from_database(cmddata)
+        chat = Chat.from_database(cmddata)
+
+        Matchwords = []
+        Responses = []
+
+        C = WordMatchResponse
+        Mode = WordMatchMode(int(cmddata[WordMatchResponse.COL_TYPE]))
+
+        query = Database.select_str([C.WORDS_COL_CMD_ID, C.WORDS_COL_TEXT], [C.WORDS_TABLE],
+                                    [(C.WORDS_COL_CMD_ID, str(Id))])
+        query += '; '
+        query += Database.select_str([C.RESPONSES_COL_ID, C.RESPONSES_COL_TEXT], [C.RESPONSES_TABLE],
+                                     [(C.RESPONSES_COL_CMD_ID, str(Id))])
+
+        data = Database.query(query)
+
+        success, rows = Database.get_rows(data, 0)
+        if not success:
+            return None
+
+        for row in rows:
+            Matchwords.append(Database.unescape(row[C.WORDS_COL_TEXT]))
+
+        success, rows = Database.get_rows(data, 1)
+        if not success:
+            return None
+
+        for row in rows:
+            Responses.append(Database.unescape(row[C.RESPONSES_COL_TEXT]))
+
+        return cls(Id, MatchCounter, BotName, user, chat, Mode, Matchwords, Responses)
+
+    @classmethod
+    def from_message(cls, words, responses, mode: WordMatchMode, msg: TelegramApi.Message):
+        Matchwords = words
+        Responses = responses
+        Mode = mode
+
+        BotName = Constants.APP_NAME
+        user = User.from_message(msg)
+        chat = Chat.from_message(msg)
+
+        return cls(-1, 0, BotName, user, chat, Mode, Matchwords, Responses)
+
+    @staticmethod
+    def add_to_list_from_message(words, responses, mode, msg: TelegramApi.Message):
+        cls = WordMatchResponse.from_message(words, responses, mode, msg)
+
+        if cls is not None:
+            WordMatchResponse.List.append(cls)
+            cls.save_to_database()
+
+    @staticmethod
+    def load_list_from_database():
+        C = WordMatchResponse
+        C.List = []
+
+        cols = [Command.COL_ID]
+        cols.extend(Command.COLS)
+        cols.extend(C.COLS)
+        cols.extend(User.COLS)
+        cols.extend(Chat.COLS)
+
+        tables = [C.TABLE, Command.TABLE, User.TABLE, Chat.TABLE]
+        equals = [(C.COL_ID, Command.COL_ID), (User.COL_ID, Command.COL_USER_ID), (Chat.COL_ID, Command.COL_CHAT_ID),
+                  (Command.COL_BOT_NAME, '\'' + Constants.APP_NAME + '\'')]
+
+        r = Database.select(cols, tables, equals)
+
+        success, rows = Database.get_rows(r, -1)
+
+        if success:
+            cnt = 0
+            for row in rows:
+                cls = WordMatchResponse.from_database(row)
+                if cls is not None:
+                    C.List.append(cls)
+                    cnt += 1
+            logger.info("Loaded {} commands from {} rows from database".format(cnt, len(rows)))
+        else:
+            logger.error("Error loading data from database")
+        return True

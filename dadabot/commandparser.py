@@ -1,242 +1,130 @@
 import collections
 import re
 
-StrOp = collections.namedtuple('StrOp', ['Index', 'Result', 'Text'])
 
-ParseResult = collections.namedtuple('ParseResult', ['Found', 'Command', 'Op', 'Data'])
+def parse_match(lines: list):
+    re_continueline = re.compile(r'/\s*$')
 
-MatchData = collections.namedtuple('ResponseData', ['Words', 'Responses'])
+    state = 0
+    parsing_continued_line = False
 
-AddData = collections.namedtuple('AddData', ['Id', 'Strings'])
+    matchwords: list = []
+    responses: list = []
 
-text_delimiter = '"'
+    for l in lines[1:]:
+        if not parsing_continued_line:
+            if is_empty(l):
+                if state == 0:
+                    if len(matchwords) == 0:
+                        return None
+                    else:
+                        state += 1
+                        continue
+                elif state == 1:
+                    return None
 
-dic_result = 'Op'
+        m = re_continueline.search(l)
 
+        if m is not None:
+            l = l[:m.start(0)]
 
-def skip_whitespaces(s: str, i: int):
-    while i < len(s):
-        c = s[i]
-        if c == ' ':
-            i += 1
-        else:
-            return StrOp(i, True, '')
-
-    return StrOp(i, False, 'EOS')
-
-
-def read_text(s: str, i: int):
-    text = ''
-    force_read = False
-
-    while i < len(s):
-        c = s[i]
-        if force_read:
-            if c == "\"":
-                text += c
+        if parsing_continued_line:
+            if state == 0:
+                matchwords[-1] += "\n" + _unescape(l)
             else:
-                text += "\\"
-            force_read = False
-        elif c == '\\':
-            force_read = True
-        elif c == text_delimiter:
-            i += 1
-            return StrOp(i, True, text)
+                responses[-1] += "\n" + _unescape(l)
         else:
-            text += c
-
-        i += 1
-
-    return StrOp(i, False, 'EOS')
-
-
-def parse_removematching(cmd: str):  # TODO: Finish implementation
-    match_words = []
-
-    i = 0
-
-    can_proceed = True
-    clean_end = False
-
-    while i < len(cmd):
-        r = skip_whitespaces(cmd, i)
-        if r.Result:
-            i = r.Index
-        else:
-            return {dic_result, r}
-
-        if cmd[i] == text_delimiter:
-            if not can_proceed:
-                return {dic_result: StrOp(i, False, "Virgole mancanti")}
-
-            r = read_text(cmd, i+1)
-            if r.Result:
-                i = r.Index
-                match_words.append(r.Text)
-                clean_end = True
+            if state == 0:
+                matchwords.append(_unescape(l))
             else:
-                return {dic_result, r}
+                responses.append(_unescape(l))
 
-        elif len(match_words) == 0:
-            return {dic_result: StrOp(i, False, 'Non hai specificato nessuna parola!')}
+        parsing_continued_line = m is not None
 
-        elif cmd[i] == ',':
-            i += 1
-            can_proceed = True
-            continue
-        else:
-            return {dic_result: StrOp(i, False, 'Errore di sintassi')}
-
-        can_proceed = False
-
-
-def parse_match(cmd: str):
-    section = 0
-    clean_end = False
-    can_proceed = True
-
-    match_words = []
-    responses = []
-
-    i = 0
-
-    while i < len(cmd):
-        clean_end = False
-
-        r = skip_whitespaces(cmd, i)
-        if r.Result:
-            i = r.Index
-        else:
-            return {dic_result: r}
-
-        if cmd[i] == text_delimiter:
-            if not can_proceed:
-                return {dic_result: StrOp(i, False, "Virgole mancanti")}
-
-            r = read_text(cmd, i + 1)
-            if r.Result:
-                i = r.Index
-                if section == 0:
-                    match_words.append(r.Text)
-                elif section == 1:
-                    responses.append(r.Text)
-                    clean_end = True
-            else:
-                return {dic_result: r}
-        elif len(match_words) == 0:
-            return {dic_result: StrOp(i, False, 'Non hai specificato nessuna parola!')}
-        elif cmd[i] == ',':
-            i += 1
-            can_proceed = True
-            continue
-        elif cmd[i] == ':':
-            i += 1
-            section += 1
-            can_proceed = True
-            if section > 1:
-                return {dic_result: StrOp(i, False, 'Il comando non termina correttamente')}
-
-            continue
-        else:
-            return {dic_result: StrOp(i, False, 'Errore di sintassi')}
-
-        can_proceed = False
-
-    if clean_end:
-        return {dic_result: StrOp(i, True, ''), 'Data': MatchData(match_words, responses)}
-    elif len(responses) == 0:
-        return {dic_result: StrOp(i, False, 'Non hai scritto nessuna risposta!')}
+    if len(responses) > 0:
+        return {'matchwords': matchwords, 'responses': responses}
     else:
-        return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+        return None
 
 
-def parse_add(cmd: str):
-    section = 0
-    clean_end = False
-    can_proceed = True
+def is_empty(string: str, start=0):
+    re_empty = re.compile(r"\s*")
+    return re_empty.fullmatch(string, start) is not None
 
-    id = -1
-    strings = []
 
-    i = 0
+def parse_add(lines: list):
+    re_id = re.compile(r'(?:.*\s+|\s*)(?P<id>\d+)\s*')
+    re_continueline = re.compile(r'/\s*$')
 
-    while i < len(cmd):
-        clean_end = False
+    state = 0
+    parsing_continued_line = False
 
-        r = skip_whitespaces(cmd, i)
-        if r.Result:
-            i = r.Index
+    cmdid = 0
+    words: list = []
+
+    for l in lines:
+        if not parsing_continued_line:
+            if is_empty(l):
+                return None
+
+        if state == 0:
+            m = re_id.fullmatch(l)
+            if m is not None:
+                cmdid = int(m.group('id'))
+                state += 1
+                continue
+            return None
+
+        m = re_continueline.search(l)
+
+        if m is not None:
+            l = l[:m.start(0)]
+
+        if parsing_continued_line:
+            words[-1] += "\n" + _unescape(l)
         else:
-            return {dic_result: r}
+            words.append(_unescape(l))
 
-        if cmd[i] == text_delimiter:
-            if not can_proceed:
-                return {dic_result: StrOp(i, False, "Virgole mancanti")}
+        parsing_continued_line = m is not None
 
-            r = read_text(cmd, i + 1)
-            if r.Result:
-                i = r.Index
-                if section == 0:
-                    try:
-                        id = int(r.Text)
-                    except ValueError:
-                        return {dic_result: StrOp(i, False, 'Non hai specificato un indice!')}
-                elif section == 1:
-                    strings.append(r.Text)
-                    clean_end = True
-            else:
-                return {dic_result: r}
-        elif id == -1:
-            return {dic_result: StrOp(i, False, 'Non hai specificato un indice!')}
-        elif cmd[i] == ',':
-            if section == 0:
-                return {dic_result: StrOp(i, False, 'Specifica un solo indice!')}
-            i += 1
-            can_proceed = True
-            continue
-        elif cmd[i] == ':':
-            i += 1
-            section += 1
-            can_proceed = True
-            if section > 1:
-                return {dic_result: StrOp(i, False, 'Il comando non termina correttamente')}
-
-            continue
-        else:
-            return {dic_result: StrOp(i, False, 'Errore di sintassi')}
-
-        can_proceed = False
-
-    if clean_end:
-        return {dic_result: StrOp(i, True, ''), 'Data': AddData(id, strings)}
-    elif len(strings) == 0:
-        return {dic_result: StrOp(i, False, 'Non hai scritto nessuna risposta!')}
+    if len(words) > 0:
+        return {'id': cmdid, 'words': words}
     else:
-        return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+        return None
 
 
-def parse_id(cmd: str):
-    i = 0
+def parse_id(lines: list):
+    if len(lines) != 1:
+        return None
 
-    r = skip_whitespaces(cmd, i)
-    if r.Result:
-        i = r.Index
-    else:
-        return {dic_result: r}
+    re_id = re.compile(r'(?:.*\s+|\s*)(?P<id>\d+)\s*')
 
-    if cmd[i] == text_delimiter:
+    m = re_id.fullmatch(lines[0])
+    if m is not None:
+        cmdid = int(m.group('id'))
+        return {'id': cmdid}
 
-        r = read_text(cmd, i + 1)
-        if r.Result:
-            i = r.Index
-            return {dic_result: StrOp(i, True, ''), 'Data': r.Text}
-        else:
-            return {dic_result: r}
-    else:
-        return {dic_result: StrOp(i, False, 'Errore di sintassi')}
+    return None
 
 
-def display_args(cmd:str):
+def parse_str(lines: list):
+    if len(lines) != 1:
+        return None
+    re_str = re.compile(r'/\w+\s+(?P<str>.*)')
+
+    m = re_str.fullmatch(lines[0])
+    if m is not None:
+        string = m.group('str')
+        return {'str': string}
+
+    return None
+
+
+def _unescape(string: str):
+    return string.replace(r'\"', '"')
+
+
+def display_args(lines: list):
     str1 = '1: Msg\n--Id\n--Sender (Vedi 2)\n--Date\n--Chat (Vedi 3)\n--Text\n\n'
     str2 = '2: Sender\n--Id\n--FirstName\n--LastName\n--Username\n\n'
     str3 = '3: Chat\n--Id\n--Type\n--Title\n--FirstName\n--LastName\n--Username\n\n'
@@ -244,78 +132,15 @@ def display_args(cmd:str):
 
     msg = str1 + str2 + str3 + str4
 
-    if len(cmd) == 0:
-        return {dic_result: StrOp(0, True, ''), 'Data': msg}
+    if len(lines) == 1:
+        return {'data': msg}
     else:
-        return {dic_result: StrOp(0, False, '')}
+        return None
 
 
-def display_help(cmd: str):
-    str1 = '!match - Guida aggiunta risposte automatiche\n\n'
-    str2 = '!msgargs - Guida stringhe speciali nella risposta'
-
-    msg = str1 + str2
-
-    if len(cmd) == 0:
-        return {dic_result: StrOp(0, True, ''), 'Data': msg}
+def nothing_to_parse(lines: list):
+    if len(lines) == 1:
+        return {}
     else:
-        return {dic_result: StrOp(0, False, '')}
-
-
-def display_match(cmd: str):
-    msg = 'Esempio: \nmatchwords "parola1", "parola2", "parolaN": "risposta1", "risposta2", "rispostaN"\n' \
-           'Comandi disponibili: matchwords, matchany, matchmsg'
-
-    if len(cmd) == 0:
-        return {dic_result: StrOp(0, True, ''), 'Data': msg}
-    else:
-        return {dic_result: StrOp(0, False, '')}
-
-
-def check_no_more_data(cmd: str):
-    if len(cmd) == 0:
-        return {dic_result: StrOp(0, True, ''), 'Data': ''}
-    else:
-        return {dic_result: StrOp(0, False, '')}
-
-
-def echo(cmd: str):
-    if len(cmd) == 0:
-        return {dic_result: StrOp(0, True, ''), 'Data': 0}
-
-    data = re.search('^[ ]+?(-?[\d]+)?$', cmd, re.IGNORECASE)
-    if data is not None:
-        id = int(data.group(1))
-        return {dic_result: StrOp(0, True, ''), 'Data': id}
-
-    return {dic_result: StrOp(0, False, '')}
-
-commands = [
-    ('matchwords', parse_match),
-    ('matchany', parse_match),
-    ('matchmsg', parse_match),
-    ('listmatching', parse_id),
-    ('addwords', parse_add),
-    ('addresponses', parse_add),
-    ('remove', parse_id),
-
-    ('listchats', check_no_more_data),
-    ('echo', echo),
-
-    ('!msgargs', display_args),
-    ('!help', display_help),
-    ('!match', display_match),
-    ('!reload', check_no_more_data)
-]
-
-
-def parse_command(cmdstr: str):
-    for cmd in commands:
-        cmdlen = len(cmd[0])
-
-        if cmdstr.lower().startswith(cmd[0]) and len(cmdstr) >= cmdlen:
-            r = cmd[1](cmdstr[cmdlen:])
-            return ParseResult(True, cmd[0], r['Op'], r.get('Data', None))
-
-    return ParseResult(False, '', None, None)
+        return None
 

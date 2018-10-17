@@ -9,6 +9,7 @@ from dadabot.data import Database, Command, Chat
 
 from dadabot.commandparser import parse_command, ParseResult, MatchData, AddData
 from dadabot.logs import logger
+from dadabot.commands import handle_command_str, is_command
 
 chats = []  # list[Chat]
 echo_to_id = 0  # Echo messages from my chat to this chat, don't echo if 0
@@ -41,6 +42,9 @@ def load_chats():
 
 def reload_commands():
     load_commands()
+
+
+def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramApi)
 
 
 def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramApi):
@@ -160,7 +164,6 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
 load_commands()
 load_chats()
 
-
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     if not update.has_message():
         logger.warning('Eval: Update with no message')
@@ -168,6 +171,7 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
 
     msg = update.Message
 
+    # Check if the message is from a new chat
     chat_found = False
     for chat in chats:
         if chat.Id == msg.Chat.Id:
@@ -179,28 +183,12 @@ def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
         chats.append(c)
         c.save_to_database()
 
-    logger.info("Received message: " + msg.Text)
-    text = msg.Text  # .replace('\n', ' ').replace('\r', '')  # type: str
-    cmd = parse_command(text)
-
-    if cmd.Found:
-        if cmd.Op.Result:
-            logger.info('Received command:' + text)
-
-            if exec_command(cmd, msg, telegram):
-                return
-
-        else:
-            logger.info('Command contains errors:' + text + " -- " + cmd.Op.Text + "(" + str(cmd.Op.Index) + ")")
-            telegram.send_message(msg.Chat.Id, "Errore: " + cmd.Op.Text + ". Posizione: " + str(cmd.Op.Index))
-            return
-
-    if msg.Chat.Id == my_chat_id and echo_to_id != 0:
-        telegram.send_message(echo_to_id, msg.Text)
+    if is_command(msg):
+        handle_command_str(msg, telegram)
     else:
-        logger.debug("Iterating answers (%d):", len(WordMatchResponse.List))
+        # send eventual messages
         for response in WordMatchResponse.List:
             if response.matches(msg.Text):
-                logger.debug('Matched: %s', response.Matchwords[0])
                 response.reply(msg, telegram)
                 response.increment_match_counter()
+
