@@ -116,16 +116,18 @@ def exec_cmdcount(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: T
         return
     if cmddata['hasid']:
         cmdid = cmddata['id']
+        msgstr = "Il comando n. {}"
     else:
         cmdid = last_match_cmdid.get(msg.Chat.Id)
+        msgstr = "L'ultimo comando (n. {})"
         if cmdid is None:
             telegram.send_message(msg.Chat.Id, "Nessun comando utlizzato recentemente.")
             return
 
     for wmr in WordMatchResponse.List:  # type: WordMatchResponse
         if wmr.Id == cmdid:
-            telegram.send_message(msg.Chat.Id, "L'ultimo comando (n. {}) è stato utilizzato {} volt{}"
-                                  .format(cmdid, wmr.MatchCounter, 'a' if wmr.MatchCounter == 1 else 'e'))
+            telegram.send_message(msg.Chat.Id, "{} è stato utilizzato {} volt{}"
+                                  .format(msgstr.format(cmdid), wmr.MatchCounter, 'a' if wmr.MatchCounter == 1 else 'e'))
             return
 
     telegram.send_message(msg.Chat.Id, "Nessun messaggio con l'id specificato: {}.".format(cmddata['id']))
