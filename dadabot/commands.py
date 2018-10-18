@@ -3,11 +3,18 @@ from dadabot.telegramapi import TelegramApi
 from dadabot.data import Database, Command, WordMatchResponse, WordMatchMode
 from dadabot.logs import logger
 
+last_match_cmdid = {}
+
+
+def notify_new_match(last_cmdid, chat_id):
+    global last_match_cmdid
+    last_match_cmdid[chat_id] = last_cmdid
+
 
 def gen_command(cmdname, parse_func, exec_func):
     return {
         'cmdname': cmdname,
-        'cmdregex': re.compile(cmdname + r'(?:$|\s+)'),
+        'cmdregex': re.compile('(?P<cmd>{})(?:$|\s+)'.format(cmdname)),
         'parse_func': parse_func,
         'exec_func': exec_func
     }
@@ -81,7 +88,7 @@ def exec_list(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Teleg
         msgtext += 'id: ' + str(m.Id) + ' -> ' + WordMatchMode.to_string(m.Mode) + "\n" \
                    + "Match: " + list_strings(m.Matchwords) + '\nRisposte: ' + list_strings(m.Responses) + '\n'
 
-    msgtext += "\nUsa \cmdinfo <cmdid> per ottenere ulteriori informazioni."
+    msgtext += "\nUsa /cmdinfo <cmdid> per ottenere ulteriori informazioni."
 
     telegram.send_message(msg.Chat.Id, msgtext)
 
@@ -102,22 +109,46 @@ def exec_cmdinfo(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Te
             return
     telegram.send_message(msg.Chat.Id, "Nessun messaggio con l'id specificato: {}.".format(cmddata['id']))
 
+
+def exec_cmdcount(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
+    if cmddata is None:
+        telegram.send_message(msg.Chat.Id, "Utilizzo:\n/count [cmdid]")
+        return
+    if cmddata['hasid']:
+        cmdid = cmddata['id']
+    else:
+        cmdid = last_match_cmdid.get(msg.Chat.Id)
+        if cmdid is None:
+            telegram.send_message(msg.Chat.Id, "Nessun comando utlizzato recentemente.")
+            return
+
+    for wmr in WordMatchResponse.List:  # type: WordMatchResponse
+        if wmr.Id == cmdid:
+            telegram.send_message(msg.Chat.Id, "L'ultimo comando (n. {}) è stato utilizzato {} volt{}"
+                                  .format(cmdid, wmr.MatchCounter, 'a' if wmr.MatchCounter == 1 else 'e'))
+            return
+
+    telegram.send_message(msg.Chat.Id, "Nessun messaggio con l'id specificato: {}.".format(cmddata['id']))
+
 commands = [
     gen_command("/match", parse_match, exec_match),
     gen_command("/matchany", parse_match, exec_match),
     gen_command("/matchmsg", parse_match, exec_match),
     gen_command("/remove", parse_id, exec_remove),
     gen_command("/listmatching", parse_str, exec_list),
-    gen_command("/cmdinfo", parse_id, exec_cmdinfo)
+    gen_command("/cmdinfo", parse_id, exec_cmdinfo),
+    gen_command("/count", parse_id_or_empty, exec_cmdcount)
 ]
 
 
 def handle_command_str(msg: TelegramApi.Message, telegram: TelegramApi):
-    txt = msg.Text.strip()
+    txt = msg.Text.lstrip()
     logger.info("Handling command: " + txt)
 
     for cmd in commands:
-        if cmd['cmdregex'].match(txt) is not None:
+        m = cmd['cmdregex'].match(txt)
+        if m is not None:
+            txt = txt[m.end('cmd'):]
             logger.debug("Command identified: " + cmd['cmdname'])
             cmd['exec_func'](cmd['cmdname'], cmd['parse_func'](txt.splitlines()), msg, telegram)
             return True

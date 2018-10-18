@@ -8,6 +8,9 @@ def parse_match(lines: list):
     state = 0
     parsing_continued_line = False
 
+    if len(lines) == 0 or not is_empty(lines[0]):
+        return None
+
     matchwords: list = []
     responses: list = []
 
@@ -53,7 +56,7 @@ def is_empty(string: str, start=0):
 
 
 def parse_add(lines: list):
-    re_id = re.compile(r'(?:.*\s+|\s*)(?P<id>\d+)\s*')
+    re_id = re.compile(r'\s*(?P<id>\d+)\s*$')
     re_continueline = re.compile(r'/\s*$')
 
     state = 0
@@ -97,7 +100,7 @@ def parse_id(lines: list):
     if len(lines) != 1:
         return None
 
-    re_id = re.compile(r'(?:.*\s+|\s*)(?P<id>\d+)\s*')
+    re_id = re.compile(r'\s*(?P<id>\d+)\s*$')
 
     m = re_id.fullmatch(lines[0])
     if m is not None:
@@ -107,10 +110,31 @@ def parse_id(lines: list):
     return None
 
 
+def parse_id_or_empty(lines: list):
+    if len(lines) > 1:
+        return None
+
+    if len(lines) == 0:
+        return {'hasid': False}
+
+    re_id = re.compile(r'(\s*|\s*(?P<id>\d+)\s*)')
+
+    m = re_id.fullmatch(lines[0])
+    if m is not None:
+        cmdid = m.group('id')
+        if id is None:
+            return {'hasid': False}
+        else:
+            return {'hasid': True,
+                    'id': int(cmdid)}
+
+    return None
+
+
 def parse_str(lines: list):
     if len(lines) != 1:
         return None
-    re_str = re.compile(r'/\w+\s+(?P<str>.*)')
+    re_str = re.compile(r'\s*(?P<str>.*)')
 
     m = re_str.fullmatch(lines[0])
     if m is not None:
