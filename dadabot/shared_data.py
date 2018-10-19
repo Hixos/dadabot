@@ -13,6 +13,11 @@ class Constants:
     else:
         APP_NAME = 'dadabot1'
 
+    if APP_NAME == 'dadabot1':
+        BOT_NAME = 'dadadaze_bot'
+    else:
+        BOT_NAME = 'dadatest_bot'
+
     KEY_SQL_PSK = 'skey'
     KEY_SQL_QUERY = 'query'
     KEY_SQL_SUCCESS = 'success'

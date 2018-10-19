@@ -2,6 +2,7 @@ from dadabot.commandparser import *
 from dadabot.telegramapi import TelegramApi
 from dadabot.data import Database, Command, WordMatchResponse, WordMatchMode
 from dadabot.logs import logger
+from dadabot.shared_data import Constants
 
 last_match_cmdid = {}
 
@@ -14,7 +15,7 @@ def notify_new_match(last_cmdid, chat_id):
 def gen_command(cmdname, parse_func, exec_func):
     return {
         'cmdname': cmdname,
-        'cmdregex': re.compile('(?P<cmd>{})(?:$|\s+)'.format(cmdname)),
+        'cmdregex': re.compile('(?P<cmd>{}(?:@{})?)(?:$|\s+)'.format(cmdname, Constants.BOT_NAME)),
         'parse_func': parse_func,
         'exec_func': exec_func
     }
@@ -95,11 +96,18 @@ def exec_list(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Teleg
 
 def exec_cmdinfo(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
     if cmddata is None:
-        telegram.send_message(msg.Chat.Id, "Utilizzo:\n/cmdinfo <cmdid>")
+        telegram.send_message(msg.Chat.Id, "Utilizzo:\n/cmdinfo [cmdid]")
         return
+    if cmddata['hasid']:
+        cmdid = cmddata['id']
+    else:
+        cmdid = last_match_cmdid.get(msg.Chat.Id)
+        if cmdid is None:
+            telegram.send_message(msg.Chat.Id, "Nessun comando utlizzato recentemente.")
+            return
 
     for wmr in WordMatchResponse.List:  # type: WordMatchResponse
-        if wmr.Id == cmddata['id']:
+        if wmr.Id == cmdid:
             msgtext = 'id: ' + str(wmr.Id) + ' -> ' + WordMatchMode.to_string(wmr.Mode) + "\n" \
                        + "Match: " + list_strings(wmr.Matchwords) + '\nRisposte: ' + list_strings(wmr.Responses) + '\n'
             msgtext += 'creator: ' + wmr.User.FirstName + ' ' + wmr.User.LastName + ' ' + wmr.User.Username + '\n'
@@ -137,8 +145,9 @@ commands = [
     gen_command("/matchany", parse_match, exec_match),
     gen_command("/matchmsg", parse_match, exec_match),
     gen_command("/remove", parse_id, exec_remove),
+    #gen_command("/removelast", parse_id, exec_remove),
     gen_command("/listmatching", parse_str, exec_list),
-    gen_command("/cmdinfo", parse_id, exec_cmdinfo),
+    gen_command("/cmdinfo", parse_id_or_empty, exec_cmdinfo),
     gen_command("/count", parse_id_or_empty, exec_cmdcount)
 ]
 

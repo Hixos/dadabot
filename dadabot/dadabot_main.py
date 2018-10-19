@@ -9,9 +9,8 @@ from dadabot.data import Database, Command, Chat, WordMatchResponse
 from dadabot.commands import is_command, handle_command_str, notify_new_match
 
 app = Flask(__name__)
-app_name = os.environ.get('APP_NAME', 'dadabot1')
 
-telegram = TelegramApi(Constants.API_KEY, app_name)
+telegram = TelegramApi(Constants.API_KEY, Constants.APP_NAME)
 
 chats: list = []
 
@@ -67,12 +66,13 @@ def evaluate_update(update: TelegramApi.Update):
     handled = False
 
     if is_command(msg):
+        logger.info("Potential command received: {}".format(msg))
         handled = handle_command_str(msg, telegram)
 
     if not handled:
         logger.debug("Not a command: " + msg.Text)
         # send eventual messages
-        for response in WordMatchResponse.List: # type: WordMatchResponse
+        for response in WordMatchResponse.List:  # type: WordMatchResponse
             if response.matches(msg.Text):
                 notify_new_match(response.Id, msg.Chat.Id)
                 response.reply(msg, telegram)
