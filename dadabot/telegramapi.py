@@ -6,6 +6,7 @@ from dadabot.logs import logger
 class TelegramApi:
 
     _offset = 0
+    _processed = []
 
     class User:
         def __init__(self, data):
@@ -137,11 +138,13 @@ class TelegramApi:
 
     def process_update_json(self, json_data, upd_eval):
         update = TelegramApi.Update(json_data)
-        if update.Id > self._offset:
-            self._offset = update.Id
+        if update.Id not in self._processed:
+            self._offset = update.Id + 1
+            self._processed.append(update.Id)
             upd_eval(update)
         else:
-            logger.warning("Discarded update with id: {}. offset is: {}\n".format(update.Id, self._offset))
+            logger.warning("Discarded update with id: {}. Already processed. offset is: {}\n"
+                           .format(update.Id, self._offset))
 
     @staticmethod
     def process_updates_list(update_list, upd_eval):
