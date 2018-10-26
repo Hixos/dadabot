@@ -20,6 +20,10 @@ def notify_new_match(last_cmdid, chat_id):
     last_match_cmdid[chat_id] = last_cmdid
 
 
+def matches_command(string, cmdname):
+    return re.match('(?P<cmd>{}(?:@{})?)(?:$|\s+)'.format(cmdname, Constants.BOT_NAME), string) is not None
+
+
 def gen_command(cmdname, parse_func, exec_func):
     return {
         'cmdname': cmdname,
@@ -62,17 +66,14 @@ def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
     if msg.is_sticker():
         active_commands[sender_id]['sticker_responses'].append(msg.Sticker.FileId)
         return
-    elif re.match('^\s*/end\s*$', msg.Text) is not None:
+    elif matches_command(msg.Text, '/end'):
         responses = [{'response': x, 'type': 'text'} for x in active_commands[sender_id]['text_responses']]
         responses += [{'response': x, 'type': 'sticker'} for x in active_commands[sender_id]['sticker_responses']]
 
         if len(responses) == 0:
-
             telegram.send_message(msg.Chat.Id,
-                                  "Comando annullato: non hai aggiunto neanche una risposta.\n" +
-                                  "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]" +
-                                  "\n\n-->In nuovi messaggi: eventuali sticker."
-                                  .format("/matchsticker"))
+                                  "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]"
+                                  .format("/stickermatch[msg|any]") + "\n\n-->In nuovi messaggi: eventuali sticker.")
         else:
             WordMatchResponse.add_to_list_from_message(active_commands[sender_id]['matchwords'], responses,
                                                        active_commands[sender_id]['mode'], msg)
@@ -81,7 +82,7 @@ def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
 
         del active_commands[sender_id]
 
-    elif re.match('^\s*/cancel\s*$', msg.Text) is not None:
+    elif matches_command(msg.Text, '/cancel'):
         del active_commands[sender_id]
         telegram.send_message(msg.Chat.Id, "Comando annullato.")
 
@@ -227,6 +228,10 @@ def exec_cmdcount(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: T
 
     telegram.send_message(msg.Chat.Id, "Nessun messaggio con l'id specificato: {}.".format(cmddata['id']))
 
+
+def exec_donothing(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
+    return
+
 commands = [
     gen_command("/match", parse_match, exec_match),
     gen_command("/matchany", parse_match, exec_match),
@@ -240,7 +245,10 @@ commands = [
     #gen_command("/removelast", parse_id, exec_remove),
     gen_command("/listmatching", parse_str, exec_list),
     gen_command("/cmdinfo", parse_id_or_empty, exec_cmdinfo),
-    gen_command("/count", parse_id_or_empty, exec_cmdcount)
+    gen_command("/count", parse_id_or_empty, exec_cmdcount),
+
+    gen_command("/end", parse_nothing, exec_donothing),
+    gen_command("/cancel", parse_nothing, exec_donothing)
 ]
 
 

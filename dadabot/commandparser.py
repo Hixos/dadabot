@@ -169,7 +169,7 @@ def display_args(lines: list):
         return None
 
 
-def nothing_to_parse(lines: list):
+def parse_nothing(lines: list):
     if len(lines) == 1:
         return {}
     else:
