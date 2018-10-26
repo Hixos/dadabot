@@ -37,19 +37,30 @@ class TelegramApi:
         def print(self):
             print(self.to_string() + '\n')
 
+    class Sticker:
+        def __init__(self, data):
+            self.FileId = data.get('file_id')
+
+        def to_string(self):
+            return 'STICKER: ' + str(self.FileId)
+
+        def print(self):
+            print(self.to_string() + '\n')
+
     class Message:
         def __init__(self, data):
             self.Id = int(data.get('message_id'))
             self.Sender = TelegramApi.User(data.get('from')) if 'from' in data else None
             self.Date = data.get('date', -1)
             self.Chat = TelegramApi.Chat(data.get('chat'))
-            self.Text = data.get('text', '')
+            self.Text: str = data.get('text', '')
+            self.Sticker = TelegramApi.Sticker(data.get('sticker')) if 'sticker' in data else None
 
-        def has_user(self) -> bool:
-            return self.User is not None
+        def is_sticker(self):
+            return self.Sticker is not None
 
         def to_string(self):
-            return 'MESSAGE: ' + str(self.Id) + ' ' + self.User.FirstName + ' ' + self.Text
+            return 'MESSAGE: ' + str(self.Id) + ' ' + self.Sender.FirstName + ' ' + self.Text
 
         def print(self):
             print(self.to_string() + '\n')
@@ -77,6 +88,14 @@ class TelegramApi:
         params = {'chat_id': chat, 'text': text}
         response = requests.post(self.url + 'sendMessage', data=params)
         logger.info('Send_mess response: %s', response.text)
+        if response.status_code != requests.codes.ok:
+            logger.info('Status code: %s', response.status_code)
+        return response
+
+    def send_sticker(self, chat, file_id: str):
+        params = {'chat_id': chat, 'sticker': file_id}
+        response = requests.post(self.url + 'sendSticker', data=params)
+        logger.info('Send_sticker response: %s', response.text)
         if response.status_code != requests.codes.ok:
             logger.info('Status code: %s', response.status_code)
         return response

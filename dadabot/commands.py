@@ -4,7 +4,15 @@ from dadabot.data import Database, Command, WordMatchResponse, WordMatchMode
 from dadabot.logs import logger
 from dadabot.shared_data import Constants
 
+import re
+
 last_match_cmdid = {}
+
+active_commands = {}
+
+
+def get_user_chat_id(msg: TelegramApi.Message):
+    return str(msg.Chat.Id) + str(msg.Sender.Id)
 
 
 def notify_new_match(last_cmdid, chat_id):
@@ -43,8 +51,83 @@ def exec_match(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Tele
                               .format("/match[any|msg]"))
         return
 
-    WordMatchResponse.add_to_list_from_message(cmddata['matchwords'], cmddata['responses'], mode, msg)
+    responses = [{'response': x, 'type': 'text'} for x in cmddata['responses']]
+    WordMatchResponse.add_to_list_from_message(cmddata['matchwords'], responses, mode, msg)
     telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
+
+
+def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
+    logger.debug("func_save_sticker")
+    sender_id = get_user_chat_id(msg)
+    if msg.is_sticker():
+        active_commands[sender_id]['sticker_responses'].append(msg.Sticker.FileId)
+        return
+    elif re.match('^\s*/end\s*$', msg.Text) is not None:
+        responses = [{'response': x, 'type': 'text'} for x in active_commands[sender_id]['text_responses']]
+        responses += [{'response': x, 'type': 'sticker'} for x in active_commands[sender_id]['sticker_responses']]
+
+        if len(responses) == 0:
+
+            telegram.send_message(msg.Chat.Id,
+                                  "Comando annullato: non hai aggiunto neanche una risposta.\n" +
+                                  "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]" +
+                                  "\n\n-->In nuovi messaggi: eventuali sticker."
+                                  .format("/matchsticker"))
+        else:
+            WordMatchResponse.add_to_list_from_message(active_commands[sender_id]['matchwords'], responses,
+                                                       active_commands[sender_id]['mode'], msg)
+
+            telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
+
+        del active_commands[sender_id]
+
+    elif re.match('^\s*/cancel\s*$', msg.Text) is not None:
+        del active_commands[sender_id]
+        telegram.send_message(msg.Chat.Id, "Comando annullato.")
+
+    else:
+        fail_count = active_commands[sender_id].get('fail_count', 0)
+        active_commands[sender_id]['fail_count'] = fail_count + 1
+
+        if fail_count < 2:
+            telegram.send_message(msg.Chat.Id, "{}, Scrivi /end per terminare l'aggiunta di sticker, /cancel per annullarla."
+                                  .format(msg.Sender.FirstName))
+        elif fail_count == 2:
+            telegram.send_message(msg.Chat.Id, "{}, SCRIVI /end OPPURE /cancel PER TERMINARE L'AGGIUNTA DI STICKER!"
+                                  .format(msg.Sender.FirstName))
+        else:
+            del active_commands[sender_id]
+            telegram.send_message(msg.Chat.Id, "Comando annullato.")
+
+
+def exec_match_sticker(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
+    logger.debug("exec_match_sticker")
+    if cmd == '/stickermatch':
+        mode = WordMatchMode.WORD
+    elif cmd == '/stickermatchany':
+        mode = WordMatchMode.ANY
+    elif cmd == '/stickermatchmsg':
+        mode = WordMatchMode.WHOLEMSG
+    else:
+        mode = None
+
+    if cmddata is None or mode is None:
+        logger.error("CmdData is none: {}, mode is none: {}".format(cmddata is None, mode is None))
+        telegram.send_message(msg.Chat.Id,
+                              "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]"
+                              .format("/stickermatch[msg|any]") + "\n\n-->In nuovi messaggi: eventuali sticker.")
+        return
+
+    sender_id = get_user_chat_id(msg)
+    active_commands[sender_id] = {'cmd': cmd,
+                                  'func': func_save_sticker,
+                                  'mode': mode,
+                                  'matchwords': cmddata['matchwords'],
+                                  'text_responses': cmddata.get('responses', []),
+                                  'sticker_responses': []
+                                  }
+
+    telegram.send_message(msg.Chat.Id, "Ora manda gli sticker. Scrivi /end quando hai finito, /cancel per annullare.")
 
 
 def exec_remove(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
@@ -87,7 +170,9 @@ def exec_list(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Teleg
     msgtext = 'Comandi corrispondenti: \n'
     for m in matching:
         msgtext += 'id: ' + str(m.Id) + ' -> ' + WordMatchMode.to_string(m.Mode) + "\n" \
-                   + "Match: " + list_strings(m.Matchwords) + '\nRisposte: ' + list_strings(m.Responses) + '\n'
+                   + "Match: " + list_strings(m.Matchwords) + '\nRisposte: ' \
+                   + list_strings([x['response'] if x['type'] == 'text' else "Sticker: " + x['response']
+                                   for x in m.Responses]) + '\n'
 
     msgtext += "\nUsa /cmdinfo <cmdid> per ottenere ulteriori informazioni."
 
@@ -109,7 +194,9 @@ def exec_cmdinfo(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Te
     for wmr in WordMatchResponse.List:  # type: WordMatchResponse
         if wmr.Id == cmdid:
             msgtext = 'id: ' + str(wmr.Id) + ' -> ' + WordMatchMode.to_string(wmr.Mode) + "\n" \
-                       + "Match: " + list_strings(wmr.Matchwords) + '\nRisposte: ' + list_strings(wmr.Responses) + '\n'
+                       + "Match: " + list_strings(wmr.Matchwords) + '\nRisposte: ' \
+                      + list_strings([x['response'] if x['type'] == 'text' else "Sticker: " + x['response']
+                                      for x in wmr.Responses]) + '\n'
             msgtext += 'creator: ' + wmr.User.FirstName + ' ' + wmr.User.LastName + ' ' + wmr.User.Username + '\n'
             msgtext += 'count: ' + str(wmr.MatchCounter)
 
@@ -144,6 +231,11 @@ commands = [
     gen_command("/match", parse_match, exec_match),
     gen_command("/matchany", parse_match, exec_match),
     gen_command("/matchmsg", parse_match, exec_match),
+
+    gen_command("/stickermatch", parse_match_optional_response, exec_match_sticker),
+    gen_command("/stickermatchany", parse_match_optional_response, exec_match_sticker),
+    gen_command("/stickermatchmsg", parse_match_optional_response, exec_match_sticker),
+
     gen_command("/remove", parse_id, exec_remove),
     #gen_command("/removelast", parse_id, exec_remove),
     gen_command("/listmatching", parse_str, exec_list),
@@ -153,14 +245,20 @@ commands = [
 
 
 def handle_command_str(msg: TelegramApi.Message, telegram: TelegramApi):
-    txt = msg.Text.lstrip()
-    logger.info("Handling command: " + txt)
+    sender_id = get_user_chat_id(msg)
+    if sender_id in active_commands:
+        active_commands[sender_id]['func'](msg, telegram)
+        return True
+    elif is_command(msg):
+        txt = msg.Text.lstrip()
+        logger.info("Handling command: " + txt)
 
-    for cmd in commands:
-        m = cmd['cmdregex'].match(txt)
-        if m is not None:
-            txt = txt[m.end('cmd'):]
-            logger.debug("Command identified: " + cmd['cmdname'])
-            cmd['exec_func'](cmd['cmdname'], cmd['parse_func'](txt.splitlines()), msg, telegram)
-            return True
+        for cmd in commands:
+            m = cmd['cmdregex'].match(txt)
+            if m is not None:
+                txt = txt[m.end('cmd'):]
+                logger.debug("Command identified: " + cmd['cmdname'])
+                cmd['exec_func'](cmd['cmdname'], cmd['parse_func'](txt.splitlines()), msg, telegram)
+                return True
+
     return False

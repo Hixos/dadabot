@@ -4,5 +4,6 @@ import time
 telegram.delete_webhook()
 
 while True:
+    print("Processing...")
     telegram.process_updates(evaluate_update)
-    time.sleep(2)
+    time.sleep(5)

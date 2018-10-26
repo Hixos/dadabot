@@ -2,7 +2,7 @@ import collections
 import re
 
 
-def parse_match(lines: list):
+def parse_match(lines: list, allow_no_response=False):
     re_continueline = re.compile(r'/\s*$')
 
     state = 0
@@ -47,7 +47,14 @@ def parse_match(lines: list):
     if len(responses) > 0:
         return {'matchwords': matchwords, 'responses': responses}
     else:
-        return None
+        if allow_no_response and len(matchwords) > 0:
+            return {'matchwords': matchwords}
+        else:
+            return None
+
+
+def parse_match_optional_response(lines: list):
+    return parse_match(lines, True)
 
 
 def is_empty(string: str, start=0):

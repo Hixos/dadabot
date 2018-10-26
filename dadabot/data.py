@@ -357,10 +357,11 @@ class WordMatchResponse(Command):
     RESPONSES_COL_ID = RESPONSES_TABLE + '.resp_id'
     RESPONSES_COL_TEXT = RESPONSES_TABLE + '.resp_text'
     RESPONSES_COL_CMD_ID = RESPONSES_TABLE + '.cmd_id'
+    RESPONSES_COL_TYPE = RESPONSES_TABLE + '.resp_type'
 
     COLS = [COL_TYPE]
     WORD_COLS = [WORDS_COL_TEXT, WORDS_COL_CMD_ID]
-    RESP_COLS = [RESPONSES_COL_TEXT, RESPONSES_COL_CMD_ID]
+    RESP_COLS = [RESPONSES_COL_TEXT, RESPONSES_COL_CMD_ID, RESPONSES_COL_TYPE]
 
     List = []  # type: list
 
@@ -376,12 +377,19 @@ class WordMatchResponse(Command):
     def reply(self, msg: TelegramApi.Message, telegram: TelegramApi):
         answ = random.choice(self.Responses)  # type:
 
-        try:
-            answ = answ.format(Msg=msg, count=self.MatchCounter)
-        except (KeyError, AttributeError):
-            pass
+        if answ['type'] == 'text':
+            try:
+                answ = answ.format(Msg=msg, count=self.MatchCounter)
+            except (KeyError, AttributeError):
+                pass
 
-        r = telegram.send_message(msg.Chat.Id, answ)
+            r = telegram.send_message(msg.Chat.Id, answ['response'])
+        elif answ['type'] == 'sticker':
+            r = telegram.send_sticker(msg.Chat.Id, answ['response'])
+        else:
+            logger.error("Unknown response type: {}".format(answ['type']))
+            return None
+
         if r.status_code != requests.codes.ok:
             logger.error("Error posting message: {} - {}".format(r.status_code, r.reason))
         else:
@@ -404,7 +412,7 @@ class WordMatchResponse(Command):
             s += '; ' + Database.insert_str(C.WORDS_TABLE, C.WORD_COLS, [word, self.Id])
 
         for resp in self.Responses:
-            s += '; ' + Database.insert_str(C.RESPONSES_TABLE, C.RESP_COLS, [resp, self.Id])
+            s += '; ' + Database.insert_str(C.RESPONSES_TABLE, C.RESP_COLS, [resp['response'], self.Id, resp['type']])
 
         logger.info(s)
         success = Database.query_bool(s)
@@ -431,8 +439,8 @@ class WordMatchResponse(Command):
         query = Database.select_str([C.WORDS_COL_CMD_ID, C.WORDS_COL_TEXT], [C.WORDS_TABLE],
                                     [(C.WORDS_COL_CMD_ID, str(Id))])
         query += '; '
-        query += Database.select_str([C.RESPONSES_COL_ID, C.RESPONSES_COL_TEXT], [C.RESPONSES_TABLE],
-                                     [(C.RESPONSES_COL_CMD_ID, str(Id))])
+        query += Database.select_str([C.RESPONSES_COL_ID, C.RESPONSES_COL_TEXT, C.RESPONSES_COL_TYPE],
+                                     [C.RESPONSES_TABLE], [(C.RESPONSES_COL_CMD_ID, str(Id))])
 
         data = Database.query(query)
 
@@ -448,7 +456,8 @@ class WordMatchResponse(Command):
             return None
 
         for row in rows:
-            Responses.append(Database.unescape(row[C.RESPONSES_COL_TEXT]))
+            Responses.append({'response': Database.unescape(row[C.RESPONSES_COL_TEXT]),
+                              'type': row[C.RESPONSES_COL_TYPE]})
 
         return cls(Id, MatchCounter, BotName, user, chat, Mode, Matchwords, Responses)
 
