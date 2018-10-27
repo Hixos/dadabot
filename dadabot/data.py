@@ -376,16 +376,17 @@ class WordMatchResponse(Command):
 
     def reply(self, msg: TelegramApi.Message, telegram: TelegramApi):
         answ = random.choice(self.Responses)  # type:
+        text = answ['response']
 
         if answ['type'] == 'text':
             try:
-                answ['response'] = answ['response'].format(Msg=msg, count=self.MatchCounter)
+                text = text.format(Msg=msg, count=self.MatchCounter)
             except (KeyError, AttributeError):
                 pass
 
-            r = telegram.send_message(msg.Chat.Id, answ['response'])
+            r = telegram.send_message(msg.Chat.Id, text)
         elif answ['type'] == 'sticker':
-            r = telegram.send_sticker(msg.Chat.Id, answ['response'])
+            r = telegram.send_sticker(msg.Chat.Id, text)
         else:
             logger.error("Unknown response type: {}".format(answ['type']))
             return None
