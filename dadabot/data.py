@@ -379,7 +379,7 @@ class WordMatchResponse(Command):
 
         if answ['type'] == 'text':
             try:
-                answ = answ.format(Msg=msg, count=self.MatchCounter)
+                answ['response'] = answ['response'].format(Msg=msg, count=self.MatchCounter)
             except (KeyError, AttributeError):
                 pass
 
