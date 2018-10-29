@@ -37,6 +37,12 @@ def is_command(msg: TelegramApi.Message):
     return msg.Text.strip().startswith("/")
 
 
+def send_match_help(msg: TelegramApi.Message, telegram: TelegramApi):
+    telegram.send_message(msg.Chat.Id,
+                          "Utilizzo:\n{} -[a|s]\nparole 1\nparole 2\nparole N\n\nrisposte 1\nrisposte 2\nrisposte N"
+                          .format("/match[any|msg]"))
+
+
 def exec_match(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
     logger.debug("exec_match")
 
@@ -50,13 +56,23 @@ def exec_match(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Tele
         mode = None
 
     if cmddata is None or mode is None:
-        telegram.send_message(msg.Chat.Id,
-                              "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\nrisposte 1\nrisposte 2\nrisposte N"
-                              .format("/match[any|msg]"))
+        send_match_help(msg, telegram)
+        return
+
+    p = cmddata['params']
+    if 's' in p:
+        exec_match_sticker(cmd, mode, cmddata, msg, telegram)
+    else:
+        exec_match_oneshot(cmd, mode, cmddata, msg, telegram)
+
+
+def exec_match_oneshot(cmd: str, mode, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
+    if len(cmddata['responses']) == 0:
+        send_match_help(msg, telegram)
         return
 
     responses = [{'response': x, 'type': 'text'} for x in cmddata['responses']]
-    WordMatchResponse.add_to_list_from_message(cmddata['matchwords'], responses, mode, msg)
+    WordMatchResponse.add_to_list_from_message(cmddata['matchwords'], responses, mode, 'a' in cmddata['params'], msg)
     telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
 
 
@@ -75,8 +91,10 @@ def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
                                   "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]"
                                   .format("/stickermatch[msg|any]") + "\n\n-->In nuovi messaggi: eventuali sticker.")
         else:
+            reply = 'a' in active_commands[sender_id]['params']
+
             WordMatchResponse.add_to_list_from_message(active_commands[sender_id]['matchwords'], responses,
-                                                       active_commands[sender_id]['mode'], msg)
+                                                       active_commands[sender_id]['mode'], reply, msg)
 
             telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
 
@@ -101,16 +119,8 @@ def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
             telegram.send_message(msg.Chat.Id, "Comando annullato.")
 
 
-def exec_match_sticker(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
+def exec_match_sticker(cmd: str, mode, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
     logger.debug("exec_match_sticker")
-    if cmd == '/stickermatch':
-        mode = WordMatchMode.WORD
-    elif cmd == '/stickermatchany':
-        mode = WordMatchMode.ANY
-    elif cmd == '/stickermatchmsg':
-        mode = WordMatchMode.WHOLEMSG
-    else:
-        mode = None
 
     if cmddata is None or mode is None:
         logger.error("CmdData is none: {}, mode is none: {}".format(cmddata is None, mode is None))
@@ -125,6 +135,7 @@ def exec_match_sticker(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegr
                                   'mode': mode,
                                   'matchwords': cmddata['matchwords'],
                                   'text_responses': cmddata.get('responses', []),
+                                  'params': cmddata['params'],
                                   'sticker_responses': []
                                   }
 
@@ -237,9 +248,9 @@ commands = [
     gen_command("/matchany", parse_match, exec_match),
     gen_command("/matchmsg", parse_match, exec_match),
 
-    gen_command("/stickermatch", parse_match_optional_response, exec_match_sticker),
-    gen_command("/stickermatchany", parse_match_optional_response, exec_match_sticker),
-    gen_command("/stickermatchmsg", parse_match_optional_response, exec_match_sticker),
+    gen_command("/stickermatch", parse_match, exec_match),
+    gen_command("/stickermatchany", parse_match, exec_match),
+    gen_command("/stickermatchmsg", parse_match, exec_match),
 
     gen_command("/remove", parse_id, exec_remove),
     #gen_command("/removelast", parse_id, exec_remove),

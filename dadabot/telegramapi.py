@@ -84,16 +84,20 @@ class TelegramApi:
         self.app_name = app_name
         self.url = "https://api.telegram.org/bot" + self.api_key + "/"
 
-    def send_message(self, chat, text):
+    def send_message(self, chat, text, reply_to_id=0):
         params = {'chat_id': chat, 'text': text}
+        if reply_to_id != 0:
+            params['reply_to_message_id'] = reply_to_id
         response = requests.post(self.url + 'sendMessage', data=params)
         logger.info('Send_mess response: %s', response.text)
         if response.status_code != requests.codes.ok:
             logger.info('Status code: %s', response.status_code)
         return response
 
-    def send_sticker(self, chat, file_id: str):
+    def send_sticker(self, chat, file_id: str, reply_to_id=0):
         params = {'chat_id': chat, 'sticker': file_id}
+        if reply_to_id != 0:
+            params['reply_to_message_id'] = reply_to_id
         response = requests.post(self.url + 'sendSticker', data=params)
         logger.info('Send_sticker response: %s', response.text)
         if response.status_code != requests.codes.ok:

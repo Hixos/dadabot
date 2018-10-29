@@ -57,7 +57,10 @@ class Database:
     @staticmethod
     def query_bool(q: str):
         r = Database.query(q)
-        return r.get(Constants.KEY_SQL_SUCCESS, False)
+        if r.get(Constants.KEY_SQL_SUCCESS, False):
+            return True
+        else:
+            logger.error(r)
 
     @staticmethod
     def get_rows(data: dict, idx: int):
@@ -271,20 +274,22 @@ class Command(object):
     COL_USER_ID = TABLE + '.user_id'
     COL_CHAT_ID = TABLE + '.chat_id'
     COL_BOT_NAME = TABLE + '.bot_name'
+    COL_REPLY_MSG = TABLE + '.reply_msg'
 
-    COLS = [COL_MATCH_COUNT, COL_USER_ID, COL_CHAT_ID, COL_BOT_NAME]
+    COLS = [COL_MATCH_COUNT, COL_USER_ID, COL_CHAT_ID, COL_BOT_NAME, COL_REPLY_MSG]
 
-    def __init__(self, cmdid, matchcounter, botname, user: User, chat: Chat):
+    def __init__(self, cmdid, matchcounter, botname, user: User, chat: Chat, reply):
         self.Id = cmdid
         self.MatchCounter = matchcounter
         self.User = user
         self.Chat = chat
         self.BotName = botname
+        self.Reply = reply
 
     def save_to_database_str(self):
         s = self.User.save_to_database_str() + '; ' + self.Chat.save_to_database_str() + '; '
         s += Database.insert_str(Command.TABLE, Command.COLS, [self.MatchCounter, self.User.Id, self.Chat.Id,
-                                                               self.BotName])
+                                                               self.BotName, int(self.Reply)])
         return s
 
     def increment_match_counter(self):
@@ -365,8 +370,8 @@ class WordMatchResponse(Command):
 
     List = []  # type: list
 
-    def __init__(self, cmdid, matchcounter, botname, user, chat, mode, matchwords, responses):
-        super().__init__(cmdid, matchcounter, botname, user, chat)
+    def __init__(self, cmdid, matchcounter, botname, user, chat, mode, reply, matchwords, responses):
+        super().__init__(cmdid, matchcounter, botname, user, chat, reply)
         self.Matchwords = matchwords
         self.Responses = responses
         self.Mode = mode
@@ -377,6 +382,10 @@ class WordMatchResponse(Command):
     def reply(self, msg: TelegramApi.Message, telegram: TelegramApi):
         answ = random.choice(self.Responses)  # type:
         text = answ['response']
+        if self.Reply:
+            reply_id = msg.Id
+        else:
+            reply_id = 0
 
         if answ['type'] == 'text':
             try:
@@ -384,9 +393,9 @@ class WordMatchResponse(Command):
             except (KeyError, AttributeError):
                 pass
 
-            r = telegram.send_message(msg.Chat.Id, text)
+            r = telegram.send_message(msg.Chat.Id, text, reply_id)
         elif answ['type'] == 'sticker':
-            r = telegram.send_sticker(msg.Chat.Id, text)
+            r = telegram.send_sticker(msg.Chat.Id, text, reply_id)
         else:
             logger.error("Unknown response type: {}".format(answ['type']))
             return None
@@ -430,6 +439,7 @@ class WordMatchResponse(Command):
         BotName = cmddata[Command.COL_BOT_NAME]
         user = User.from_database(cmddata)
         chat = Chat.from_database(cmddata)
+        reply = bool(int(cmddata[Command.COL_REPLY_MSG]))
 
         Matchwords = []
         Responses = []
@@ -460,23 +470,20 @@ class WordMatchResponse(Command):
             Responses.append({'response': Database.unescape(row[C.RESPONSES_COL_TEXT]),
                               'type': row[C.RESPONSES_COL_TYPE]})
 
-        return cls(Id, MatchCounter, BotName, user, chat, Mode, Matchwords, Responses)
+        return cls(Id, MatchCounter, BotName, user, chat, Mode, reply, Matchwords, Responses)
 
     @classmethod
-    def from_message(cls, words, responses, mode: WordMatchMode, msg: TelegramApi.Message):
-        Matchwords = words
-        Responses = responses
-        Mode = mode
+    def from_message(cls, words, responses, mode: WordMatchMode, reply: bool, msg: TelegramApi.Message):
 
         BotName = Constants.APP_NAME
         user = User.from_message(msg)
         chat = Chat.from_message(msg)
 
-        return cls(-1, 0, BotName, user, chat, Mode, Matchwords, Responses)
+        return cls(-1, 0, BotName, user, chat, mode, reply, words, responses)
 
     @staticmethod
-    def add_to_list_from_message(words, responses, mode, msg: TelegramApi.Message):
-        cls = WordMatchResponse.from_message(words, responses, mode, msg)
+    def add_to_list_from_message(words, responses, mode, reply, msg: TelegramApi.Message):
+        cls = WordMatchResponse.from_message(words, responses, mode, reply, msg)
 
         if cls is not None:
             WordMatchResponse.List.append(cls)

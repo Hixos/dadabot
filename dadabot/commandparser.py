@@ -2,14 +2,23 @@ import collections
 import re
 
 
-def parse_match(lines: list, allow_no_response=False):
+def parse_match(lines: list):
     re_continueline = re.compile(r'/\s*$')
-
+    re_params = re.compile(r'^\s*(\s*|-(?P<par>[a-zA-Z]+))\s*$')
     state = 0
     parsing_continued_line = False
 
-    if len(lines) == 0 or not is_empty(lines[0]):
+    if len(lines) == 0:
         return None
+    m = re_params.match(lines[0])
+    if m is None:
+        return None
+
+    params = m.group('par')
+    if params is None:
+        params = []
+    else:
+        params = list(params)
 
     matchwords: list = []
     responses: list = []
@@ -43,18 +52,10 @@ def parse_match(lines: list, allow_no_response=False):
                 responses.append(_unescape(l))
 
         parsing_continued_line = m is not None
-
-    if len(responses) > 0:
-        return {'matchwords': matchwords, 'responses': responses}
+    if len(matchwords) > 0:
+        return {'matchwords': matchwords, 'responses': responses, 'params': params}
     else:
-        if allow_no_response and len(matchwords) > 0:
-            return {'matchwords': matchwords}
-        else:
-            return None
-
-
-def parse_match_optional_response(lines: list):
-    return parse_match(lines, True)
+        return None
 
 
 def is_empty(string: str, start=0):
