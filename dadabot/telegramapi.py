@@ -47,6 +47,26 @@ class TelegramApi:
         def print(self):
             print(self.to_string() + '\n')
 
+    class Photo:
+        def __init__(self, data):
+            self.FileId = data[-1].get('file_id')
+
+        def to_string(self):
+            return 'PHOTO: ' + str(self.FileId)
+
+        def print(self):
+            print(self.to_string() + '\n')
+
+    class Animation:
+        def __init__(self, data):
+            self.FileId = data.get('file_id')
+
+        def to_string(self):
+            return 'ANIM: ' + str(self.FileId)
+
+        def print(self):
+            print(self.to_string() + '\n')
+
     class Message:
         def __init__(self, data):
             self.Id = int(data.get('message_id'))
@@ -55,9 +75,20 @@ class TelegramApi:
             self.Chat = TelegramApi.Chat(data.get('chat'))
             self.Text: str = data.get('text', '')
             self.Sticker = TelegramApi.Sticker(data.get('sticker')) if 'sticker' in data else None
+            self.Photo = TelegramApi.Photo(data.get('photo')) if 'photo' in data else None
+            self.Animation = TelegramApi.Sticker(data.get('animation')) if 'animation' in data else None
 
         def is_sticker(self):
             return self.Sticker is not None
+
+        def is_photo(self):
+            return self.Photo is not None
+
+        def is_animation(self):
+            return self.Animation is not None
+
+        def is_media(self):
+            return self.is_sticker() or self.is_animation() or self.is_photo()
 
         def to_string(self):
             return 'MESSAGE: ' + str(self.Id) + ' ' + self.Sender.FirstName + ' ' + self.Text
@@ -94,12 +125,23 @@ class TelegramApi:
             logger.info('Status code: %s', response.status_code)
         return response
 
-    def send_sticker(self, chat, file_id: str, reply_to_id=0):
-        params = {'chat_id': chat, 'sticker': file_id}
+    def send_media(self, chat, type: str, file_id: str, reply_to_id=0):
+        params = {'chat_id': chat, type: file_id}
         if reply_to_id != 0:
             params['reply_to_message_id'] = reply_to_id
-        response = requests.post(self.url + 'sendSticker', data=params)
-        logger.info('Send_sticker response: %s', response.text)
+
+        if type == "sticker":
+            cmd = "sendSticker"
+        elif type == "photo":
+            cmd = "sendPhoto"
+        elif type == "animation":
+            cmd = "sendAnimation"
+        else:
+            logger.error("send_media: Unknown media type:", type)
+            return
+
+        response = requests.post(self.url + cmd, data=params)
+        logger.info('Send_media response: %s', response.text)
         if response.status_code != requests.codes.ok:
             logger.info('Status code: %s', response.status_code)
         return response

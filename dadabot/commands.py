@@ -60,8 +60,8 @@ def exec_match(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Tele
         return
 
     p = cmddata['params']
-    if 's' in p:
-        exec_match_sticker(cmd, mode, cmddata, msg, telegram)
+    if 'm' in p:
+        exec_match_media(cmd, mode, cmddata, msg, telegram)
     else:
         exec_match_oneshot(cmd, mode, cmddata, msg, telegram)
 
@@ -76,20 +76,28 @@ def exec_match_oneshot(cmd: str, mode, cmddata: dict, msg: TelegramApi.Message, 
     telegram.send_message(msg.Chat.Id, "Comando aggiunto!")
 
 
-def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
-    logger.debug("func_save_sticker")
+def func_save_media(msg: TelegramApi.Message, telegram: TelegramApi):
+    logger.debug("func_save_media")
     sender_id = get_user_chat_id(msg)
-    if msg.is_sticker():
-        active_commands[sender_id]['sticker_responses'].append(msg.Sticker.FileId)
-        return
+    if msg.is_media():
+        if msg.is_sticker():
+            active_commands[sender_id]['media_responses'].append({"fileid": msg.Sticker.FileId, "type": "sticker"})
+        elif msg.is_photo():
+            active_commands[sender_id]['media_responses'].append({"fileid": msg.Photo.FileId, "type": "photo"})
+        elif msg.is_animation():
+            active_commands[sender_id]['media_responses'].append({"fileid": msg.Animation.FileId, "type": "animation"})
+        else:
+            logger.error("Media type not recognized")
+            return
     elif matches_command(msg.Text, '/end'):
         responses = [{'response': x, 'type': 'text'} for x in active_commands[sender_id]['text_responses']]
-        responses += [{'response': x, 'type': 'sticker'} for x in active_commands[sender_id]['sticker_responses']]
+
+        responses += [{'response': x["fileid"], 'type': x["type"]} for x in active_commands[sender_id]['media_responses']]
 
         if len(responses) == 0:
             telegram.send_message(msg.Chat.Id,
                                   "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]"
-                                  .format("/stickermatch[msg|any]") + "\n\n-->In nuovi messaggi: eventuali sticker.")
+                                  .format("/match[msg|any] [-(m|s)]") + "\n\n-->In nuovi messaggi: eventuali sticker.")
         else:
             reply = 'a' in active_commands[sender_id]['params']
 
@@ -109,37 +117,37 @@ def func_save_sticker(msg: TelegramApi.Message, telegram: TelegramApi):
         active_commands[sender_id]['fail_count'] = fail_count + 1
 
         if fail_count < 2:
-            telegram.send_message(msg.Chat.Id, "{}, Scrivi /end per terminare l'aggiunta di sticker, /cancel per annullarla."
+            telegram.send_message(msg.Chat.Id, "{}, Scrivi /end per terminare l'aggiunta di media, /cancel per annullarla."
                                   .format(msg.Sender.FirstName))
         elif fail_count == 2:
-            telegram.send_message(msg.Chat.Id, "{}, SCRIVI /end OPPURE /cancel PER TERMINARE L'AGGIUNTA DI STICKER!"
+            telegram.send_message(msg.Chat.Id, "{}, SCRIVI /end OPPURE /cancel PER TERMINARE L'AGGIUNTA DI MEDIA!"
                                   .format(msg.Sender.FirstName))
         else:
             del active_commands[sender_id]
             telegram.send_message(msg.Chat.Id, "Comando annullato.")
 
 
-def exec_match_sticker(cmd: str, mode, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
-    logger.debug("exec_match_sticker")
+def exec_match_media(cmd: str, mode, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
+    logger.debug("exec_match_media")
 
     if cmddata is None or mode is None:
         logger.error("CmdData is none: {}, mode is none: {}".format(cmddata is None, mode is None))
         telegram.send_message(msg.Chat.Id,
                               "Utilizzo:\n{}\nparole 1\nparole 2\nparole N\n\n[risposte 1]\n[risposte 2]\n[risposte N]"
-                              .format("/stickermatch[msg|any]") + "\n\n-->In nuovi messaggi: eventuali sticker.")
+                              .format("/match[msg|any] [-(s|m)]") + "\n\n-->In nuovi messaggi: eventuali media (sticker, foto, gif).")
         return
 
     sender_id = get_user_chat_id(msg)
     active_commands[sender_id] = {'cmd': cmd,
-                                  'func': func_save_sticker,
+                                  'func': func_save_media,
                                   'mode': mode,
                                   'matchwords': cmddata['matchwords'],
                                   'text_responses': cmddata.get('responses', []),
                                   'params': cmddata['params'],
-                                  'sticker_responses': []
+                                  'media_responses': []
                                   }
 
-    telegram.send_message(msg.Chat.Id, "Ora manda gli sticker. Scrivi /end quando hai finito, /cancel per annullare.")
+    telegram.send_message(msg.Chat.Id, "Ora manda i media. Scrivi /end quando hai finito, /cancel per annullare.")
 
 
 def exec_remove(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: TelegramApi):
@@ -183,7 +191,7 @@ def exec_list(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Teleg
     for m in matching:
         msgtext += 'id: ' + str(m.Id) + ' -> ' + WordMatchMode.to_string(m.Mode) + "\n" \
                    + "Match: " + list_strings(m.Matchwords) + '\nRisposte: ' \
-                   + list_strings([x['response'] if x['type'] == 'text' else "Sticker: " + x['response']
+                   + list_strings([x['response'] if x['type'] == 'text' else "Media: " + x['response']
                                    for x in m.Responses]) + '\n'
 
     msgtext += "\nUsa /cmdinfo <cmdid> per ottenere ulteriori informazioni."
@@ -207,7 +215,7 @@ def exec_cmdinfo(cmd: str, cmddata: dict, msg: TelegramApi.Message, telegram: Te
         if wmr.Id == cmdid:
             msgtext = 'id: ' + str(wmr.Id) + ' -> ' + WordMatchMode.to_string(wmr.Mode) + "\n" \
                        + "Match: " + list_strings(wmr.Matchwords) + '\nRisposte: ' \
-                      + list_strings([x['response'] if x['type'] == 'text' else "Sticker: " + x['response']
+                      + list_strings([x['response'] if x['type'] == 'text' else "Media: " + x['response']
                                       for x in wmr.Responses]) + '\n'
             msgtext += 'creator: ' + wmr.User.FirstName + ' ' + wmr.User.LastName + ' ' + wmr.User.Username + '\n'
             msgtext += 'count: ' + str(wmr.MatchCounter)
@@ -247,10 +255,6 @@ commands = [
     gen_command("/match", parse_match, exec_match),
     gen_command("/matchany", parse_match, exec_match),
     gen_command("/matchmsg", parse_match, exec_match),
-
-    gen_command("/stickermatch", parse_match, exec_match),
-    gen_command("/stickermatchany", parse_match, exec_match),
-    gen_command("/stickermatchmsg", parse_match, exec_match),
 
     gen_command("/remove", parse_id, exec_remove),
     #gen_command("/removelast", parse_id, exec_remove),

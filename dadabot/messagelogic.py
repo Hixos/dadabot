@@ -44,9 +44,6 @@ def reload_commands():
     load_commands()
 
 
-def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramApi)
-
-
 def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramApi):
     cmdstr = cmd.Command  # type: str
 
@@ -163,6 +160,7 @@ def exec_command(cmd: ParseResult, msg: TelegramApi.Message, telegram: TelegramA
 
 load_commands()
 load_chats()
+
 
 def evaluate(telegram: TelegramApi, update: TelegramApi.Update):
     if not update.has_message():

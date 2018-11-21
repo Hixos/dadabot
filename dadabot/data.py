@@ -394,11 +394,8 @@ class WordMatchResponse(Command):
                 pass
 
             r = telegram.send_message(msg.Chat.Id, text, reply_id)
-        elif answ['type'] == 'sticker':
-            r = telegram.send_sticker(msg.Chat.Id, text, reply_id)
         else:
-            logger.error("Unknown response type: {}".format(answ['type']))
-            return None
+            r = telegram.send_media(msg.Chat.Id, answ["type"], text, reply_id)
 
         if r.status_code != requests.codes.ok:
             logger.error("Error posting message: {} - {}".format(r.status_code, r.reason))
