@@ -14,9 +14,6 @@ telegram = TelegramApi(Constants.API_KEY, Constants.APP_NAME)
 
 chats: list = []
 
-WordMatchResponse.load_list_from_database()
-
-
 @app.route('/' + Constants.API_KEY, methods=['POST'])
 def webhook():
     logger.info('Received webhook')
@@ -84,3 +81,5 @@ if __name__ == "__main__":
 
     telegram.set_webhook()
 
+
+WordMatchResponse.load_list_from_database()
