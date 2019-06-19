@@ -75,11 +75,12 @@ def evaluate_update(update: TelegramApi.Update):
                 response.increment_match_counter()
 
 
+print("Running")
 # Start the web app (only if on remote server)
 if __name__ == "__main__":
-    if 'PORT' in os.environ:
-        port = int(os.environ.get('PORT', 5000))
-        app.run(host='0.0.0.0', port=port)
+    print("Binding to port")
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 
-        telegram.set_webhook()
+    telegram.set_webhook()
 
