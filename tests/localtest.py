@@ -1,3 +1,6 @@
+import sys 
+sys.path.append('..')
+
 from dadabot.dadabot_main import telegram, evaluate_update
 import time
 

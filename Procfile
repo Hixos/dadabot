@@ -1,1 +1,1 @@
-web: python dadabot/dadabot_main.py
+web: gunicorn app:app

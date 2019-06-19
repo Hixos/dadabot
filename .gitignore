@@ -1,3 +1,4 @@
 /api_key.txt
 .idea/
+venv/
 __pycache__
