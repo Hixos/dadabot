@@ -27,7 +27,7 @@ def list_strings(strings):
 
 
 def load_commands():
-    WordMatchResponse.add_list_from_database()
+    WordMatchResponse.load_list_from_database()
 
 
 def load_chats():
