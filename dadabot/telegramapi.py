@@ -154,7 +154,7 @@ class TelegramApi:
         params = {'url': url}
         response = requests.post(self.url + 'setWebhook', data=params)
 
-        logger.info("Webhook reponse: %s", str(response.raw))
+        logger.info("Webhook reponse: %s", response.text)
 
     def delete_webhook(self):
         url = self.url + 'deleteWebhook'

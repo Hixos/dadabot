@@ -42,6 +42,8 @@ class Database:
     @staticmethod
     def query(q: str):
         params = {Constants.KEY_SQL_PSK: Constants.API_KEY, Constants.KEY_SQL_QUERY: q}
+        logger.info("Querying data from database...")
+        logger.debug("Query: " + q)
         r = requests.post(dburl, json=params)
         try:
             js = r.json()
@@ -49,6 +51,8 @@ class Database:
                 logger.error('SQL query didn\'t return correct json')
                 return {Constants.KEY_SQL_SUCCESS: False}
             else:
+                logger.info("Done.")
+                logger.debug(str(js))
                 return js
         except ValueError:
             logger.error("Error reading response from server. Response: " + r.text)
@@ -68,14 +72,9 @@ class Database:
             return False, None
 
         results = data.get(Constants.KEY_SQL_RESULTS, [])  # type: list[dict]
-        n = len(results)
-
-        if idx < 0:
-            idx = n + idx
-
-        if 0 <= idx < n:
+        if 0 <= idx < len(results):
             return True, results[idx]
-
+        
         return False, None
 
     @staticmethod
@@ -430,7 +429,7 @@ class WordMatchResponse(Command):
         return True
 
     @classmethod
-    def from_database(cls, cmddata: dict):
+    def from_database(cls, cmddata: dict, worddata: dict, respdata: dict):
         Id = int(cmddata[Command.COL_ID])
         MatchCounter = int(cmddata[Command.COL_MATCH_COUNT])
         BotName = cmddata[Command.COL_BOT_NAME]
@@ -444,28 +443,12 @@ class WordMatchResponse(Command):
         C = WordMatchResponse
         Mode = WordMatchMode(int(cmddata[WordMatchResponse.COL_TYPE]))
 
-        query = Database.select_str([C.WORDS_COL_CMD_ID, C.WORDS_COL_TEXT], [C.WORDS_TABLE],
-                                    [(C.WORDS_COL_CMD_ID, str(Id))])
-        query += '; '
-        query += Database.select_str([C.RESPONSES_COL_ID, C.RESPONSES_COL_TEXT, C.RESPONSES_COL_TYPE],
-                                     [C.RESPONSES_TABLE], [(C.RESPONSES_COL_CMD_ID, str(Id))])
+        for word in worddata:
+            Matchwords.append(Database.unescape(word[C.WORDS_COL_TEXT]))
 
-        data = Database.query(query)
-
-        success, rows = Database.get_rows(data, 0)
-        if not success:
-            return None
-
-        for row in rows:
-            Matchwords.append(Database.unescape(row[C.WORDS_COL_TEXT]))
-
-        success, rows = Database.get_rows(data, 1)
-        if not success:
-            return None
-
-        for row in rows:
-            Responses.append({'response': Database.unescape(row[C.RESPONSES_COL_TEXT]),
-                              'type': row[C.RESPONSES_COL_TYPE]})
+        for resp in respdata:
+            Responses.append({'response': Database.unescape(resp[C.RESPONSES_COL_TEXT]),
+                              'type': resp[C.RESPONSES_COL_TYPE]})
 
         return cls(Id, MatchCounter, BotName, user, chat, Mode, reply, Matchwords, Responses)
 
@@ -486,11 +469,15 @@ class WordMatchResponse(Command):
             WordMatchResponse.List.append(cls)
             cls.save_to_database()
 
+    """
+    Load all data messages from the database
+    """
     @staticmethod
     def load_list_from_database():
         C = WordMatchResponse
         C.List = []
 
+        # Load commands
         cols = [Command.COL_ID]
         cols.extend(Command.COLS)
         cols.extend(C.COLS)
@@ -501,18 +488,44 @@ class WordMatchResponse(Command):
         equals = [(C.COL_ID, Command.COL_ID), (User.COL_ID, Command.COL_USER_ID), (Chat.COL_ID, Command.COL_CHAT_ID),
                   (Command.COL_BOT_NAME, '\'' + Constants.APP_NAME + '\'')]
 
-        r = Database.select(cols, tables, equals)
+        query = Database.select_str(cols, tables, equals)
 
-        success, rows = Database.get_rows(r, -1)
+        # Load match words
+        cols = C.WORD_COLS
 
-        if success:
-            cnt = 0
-            for row in rows:
-                cls = WordMatchResponse.from_database(row)
-                if cls is not None:
-                    C.List.append(cls)
-                    cnt += 1
-            logger.info("Loaded {} commands from {} rows from database".format(cnt, len(rows)))
-        else:
-            logger.error("Error loading data from database")
+        tables = [C.WORDS_TABLE, Command.TABLE]
+        equals = [(C.WORDS_COL_CMD_ID, Command.COL_ID), (Command.COL_BOT_NAME, '\'' + Constants.APP_NAME + '\'')]
+
+        query += ";" + Database.select_str(cols, tables, equals)
+
+        # Load Responses
+        cols = C.RESP_COLS
+
+        tables = [C.RESPONSES_TABLE, Command.TABLE]
+        equals = [(C.RESPONSES_COL_CMD_ID, Command.COL_ID), (Command.COL_BOT_NAME, '\'' + Constants.APP_NAME + '\'')]
+
+        query += ";" + Database.select_str(cols, tables, equals)
+
+        query_result = Database.query(query) #type: dict
+        
+        s1, rows_cmds = Database.get_rows(query_result, 0)
+        s2, rows_words = Database.get_rows(query_result, 1)
+        s3, rows_resps = Database.get_rows(query_result, 2)
+
+        if not (s1 and s2 and s3):       
+            logger.error("Error loading data from database:")
+            logger.error(str(query_result))
+            return False
+        cnt = 0
+        for cmd in rows_cmds:
+            cmdid = cmd[Command.COL_ID]
+            words = [w for w in rows_words if w[C.WORDS_COL_CMD_ID] == cmdid]
+            resps = [r for r in rows_resps if r[C.RESPONSES_COL_CMD_ID] == cmdid]
+
+            command = WordMatchResponse.from_database(cmd, words, resps)
+            if command is not None:
+                C.List.append(command)
+                cnt += 1
+
+        logger.info("Loaded {} commands from database.".format(cnt))
         return True

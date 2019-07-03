@@ -1,7 +1,4 @@
-import sys 
-sys.path.append('..')
-
-from dadabot.dadabot_main import telegram, evaluate_update
+from dadabot_main import telegram, evaluate_update
 import time
 
 telegram.delete_webhook()

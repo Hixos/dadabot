@@ -73,13 +73,17 @@ def evaluate_update(update: TelegramApi.Update):
 
 
 print("Running")
+WordMatchResponse.load_list_from_database()
+logger.info("Data loaded from database.")
+
 # Start the web app (only if on remote server)
 if __name__ == "__main__":
-    print("Binding to port")
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-
     telegram.set_webhook()
 
+    print("Binding to port")
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='localhost', port=port)
 
-WordMatchResponse.load_list_from_database()
+
+
+
